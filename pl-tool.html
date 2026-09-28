@@ -1348,12 +1348,15 @@ async function makeXlsx(withF){
     RES.forEach((R,y)=>{const c=row.getCell(3+y);c.value=val(ff&&ff(X(y)),g(R));c.numFmt=fm==='pct'?PCT:fm==='eur2'?EUR2:fm==='f4'?'0.0000':NUM});
     styleRow(row,ff?'tot':'row',2+NY)});
   wsT.columns=[{width:38},{width:9},...RES.map(()=>({width:13}))];
-  const T=(k,c)=>`Treiber!${c}${rT[k]}`;
+  const CL=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26)}return t};
+  const UV=y=>CL(3+2*y), UP=y=>CL(4+2*y), U2T={}; RES.forEach((r,y)=>U2T[UV(y)]=X(y));
+  const T=(k,c)=>`Treiber!${U2T[c]||c}${rT[k]}`;
+  const PFONT={...FONT,size:7,color:{argb:'FF8C8789'}};
 
   /* ---------- USALI ---------- */
-  const dyC=X(dyI-1);
+  const dyC=UV(dyI-1), porCol=3+2*NY;
   title(wsU,'Summary Operating Statement · '+S.p.name,`USALI 11th Edition · Szenario ${scen} · ${S.p.type}, ${S.p.location} · ${keysOf(S)} Keys · Eröffnung ${S.p.openYear} · EUR`);
-  headRow(wsU,4,['Position','',...RES.map((r,i)=>`${yLabel(i+1)} ${r.cal}${i+1===+S.p.stab?' stabil':''}`),`% ${yLabel(dyI)}`,`POR ${yLabel(dyI)}`]);
+  headRow(wsU,4,['Position','',...RES.flatMap((r,i)=>[`${yLabel(i+1)} ${r.cal}${i+1===+S.p.stab?' stabil':''}`,'%']),`POR ${yLabel(dyI)}`]);
   const U=(k,c)=>`${c}${rU[k]}`;
   const UR=[
    ['h1','Operating Revenue','hd'],
@@ -1400,15 +1403,16 @@ async function makeXlsx(withF){
   const baseV=(R,b)=>b==='tr'?R.tr:b==='rRooms'?R.roomsRev:b==='rFb'?R.fb.rev:b==='rSpa'?R.spa.rev:b==='rOod'?R.oodRev:R.tr;
   UR.forEach(([k,l,t,ff,g,b,fmt],i)=>{const row=wsU.getRow(5+i);row.getCell(1).value=t==='hd'?l.toUpperCase():l;
     if(t!=='hd'){
-      RES.forEach((R,y)=>{const c=row.getCell(3+y);c.value=val(ff(X(y)),g(R));c.numFmt=fmt||NUM});
-      if(b){const v=g(Rd),bv=baseV(Rd,b);const pc=row.getCell(3+NY),po=row.getCell(4+NY);
-        pc.value=val(`IFERROR(${dyC}${5+i}/${dyC}${rU[b]},0)`,bv?v/bv:0);pc.numFmt=PCT;
+      RES.forEach((R,y)=>{const c=row.getCell(3+2*y);c.value=val(ff(UV(y)),g(R));c.numFmt=fmt||NUM;
+        if(b){const v=g(R),bv=baseV(R,b),p=row.getCell(4+2*y);p.value=val(`IFERROR(${UV(y)}${5+i}/${UV(y)}${rU[b]}*100,0)`,bv?v/bv*100:0);p.numFmt='0.0'}});
+      if(b){const v=g(Rd);const po=row.getCell(porCol);
         po.value=val(`IFERROR(${dyC}${5+i}/${dyC}${rU.sSold},0)`,Rd.sold?v/Rd.sold:0);po.numFmt=EUR2;}
     }
-    styleRow(row,t,4+NY);
-    if(t!=='hd'&&t!=='key'&&t!=='gop'){const c=row.getCell(3+dyI-1);c.fill={type:'pattern',pattern:'solid',fgColor:{argb:DYF}}}
+    styleRow(row,t,porCol);
+    if(t!=='hd')RES.forEach((R,y)=>{const p=row.getCell(4+2*y);p.font={...PFONT,bold:t==='key'||t==='gop'||t==='tot'};p.alignment={horizontal:'right'}});
+    if(t!=='hd'&&t!=='key'&&t!=='gop'){[3+2*(dyI-1),4+2*(dyI-1)].forEach(n=>{row.getCell(n).fill={type:'pattern',pattern:'solid',fgColor:{argb:DYF}}})}
   });
-  wsU.columns=[{width:44},{width:2},...RES.map(()=>({width:13})),{width:10},{width:10}];
+  wsU.columns=[{width:44},{width:2},...RES.flatMap(()=>[{width:12.5},{width:5.5}]),{width:10}];
   wsU.pageSetup={orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};
 
   /* ---------- Schedules (Werte, Detailjahr) ---------- */
@@ -1417,18 +1421,18 @@ async function makeXlsx(withF){
   [['Rooms',Rd.roomsRev,D.rooms],['Food & Beverage',Rd.fb.rev,D.fb],['Spa',Rd.spa.rev,D.spa],['Other Operated Departments',Rd.oodRev,D.ood],['Undistributed Operating Expenses',Rd.tr,D.und]].forEach(([tt,rev,rows])=>{
     headRow(wsS,r,[tt,'EUR','%','POR €']);r++;
     rows.forEach(([t,l,v])=>{const row=wsS.getRow(r);row.getCell(1).value=t==='hd'?l.toUpperCase():l;
-      if(t!=='hd'){row.getCell(2).value=v;row.getCell(2).numFmt=NUM;row.getCell(3).value=rev?v/rev:0;row.getCell(3).numFmt=PCT;row.getCell(4).value=Rd.sold?v/Rd.sold:0;row.getCell(4).numFmt=EUR2}
-      styleRow(row,t,4);r++});r++;});
-  wsS.columns=[{width:52},{width:14},{width:9},{width:10}];
+      if(t!=='hd'){row.getCell(2).value=v;row.getCell(2).numFmt=NUM;row.getCell(3).value=rev?v/rev*100:0;row.getCell(3).numFmt='0.0';row.getCell(4).value=Rd.sold?v/Rd.sold:0;row.getCell(4).numFmt=EUR2}
+      styleRow(row,t,4);if(t!=='hd'){row.getCell(3).font={...PFONT,bold:t==='key'||t==='tot'};row.getCell(3).alignment={horizontal:'right'}}r++});r++;});
+  wsS.columns=[{width:52},{width:14},{width:6},{width:10}];
 
   /* ---------- Personal ---------- */
   title(wsP,`Payroll & Staffing · ${yLabel(dyI)} ${Rd.cal}`,`Szenario ${scen} · FY = Ganzjahreskraft, S = Saisonkraft`);
-  headRow(wsP,4,['Abteilung','FTE Ø Saison','Wages','Related','Total','% Revenue']);r=5;
-  DEPTS.forEach(([k,l])=>{const P=Rd.pay[k],row=wsP.getRow(r++);[l,P.fte,P.wages,P.rel+P.contract+P.extra,P.total,Rd.tr?P.total/Rd.tr:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1?'0.0':i===5?PCT:NUM});styleRow(row,'row',6)});
-  {const row=wsP.getRow(r++);['Total',Rd.fte,sum(Object.values(Rd.pay).map(p=>p.wages)),sum(Object.values(Rd.pay).map(p=>p.rel+p.contract+p.extra)),Rd.payTotal,Rd.tr?Rd.payTotal/Rd.tr:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1?'0.0':i===5?PCT:NUM});styleRow(row,'key',6)}
+  headRow(wsP,4,['Abteilung','FTE Ø Saison','Wages','Related','Total','%']);r=5;
+  DEPTS.forEach(([k,l])=>{const P=Rd.pay[k],row=wsP.getRow(r++);[l,P.fte,P.wages,P.rel+P.contract+P.extra,P.total,Rd.tr?P.total/Rd.tr*100:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row,'row',6);row.getCell(6).font=PFONT});
+  {const row=wsP.getRow(r++);['Total',Rd.fte,sum(Object.values(Rd.pay).map(p=>p.wages)),sum(Object.values(Rd.pay).map(p=>p.rel+p.contract+p.extra)),Rd.payTotal,Rd.tr?Rd.payTotal/Rd.tr*100:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row,'key',6);row.getCell(6).font={...PFONT,bold:true}}
   r++;headRow(wsP,r++,['Stellenplan','Abteilung','Früh','Mittel','Spät','Kopf = FTE','Brutto € / Monat','FY / S']);
   S.st.pos.forEach(p=>{const row=wsP.getRow(r++);[p.pos,p.dept,+p.e,+p.m,+p.l,p.hf?'ja':'nein',+p.sal,p.fs].forEach((v,i)=>{row.getCell(i+1).value=v;if(i===6)row.getCell(i+1).numFmt=NUM});styleRow(row,'row',8)});
-  wsP.columns=[{width:34},{width:14},{width:12},{width:12},{width:12},{width:12},{width:16},{width:9}];
+  wsP.columns=[{width:34},{width:14},{width:12},{width:12},{width:12},{width:10},{width:16},{width:9}];
 
   /* ---------- Szenarien ---------- */
   title(wsC,`Szenario-Vergleich · ${yLabel(dyI)} ${Rd.cal}`,'Abweichungen gegenüber Base gelten zusätzlich zum Hochlauf');
