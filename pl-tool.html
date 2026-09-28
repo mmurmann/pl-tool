@@ -134,12 +134,18 @@ table.t td.muted{color:var(--ink-3)}
 .chk input{width:16px;height:16px;accent-color:var(--green)}
 
 /* calendar */
-.cal{display:grid;grid-template-columns:repeat(12,minmax(64px,1fr));gap:6px;min-width:820px}
+.cal{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.cal{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .mon{border:1px solid var(--line);border-radius:5px;padding:8px 6px;background:var(--surface);display:flex;flex-direction:column;gap:5px;font-size:12px}
 .mon b{font-family:var(--sub);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 .mon select,.mon input{width:100%;border:1px solid var(--line-2);border-radius:3px;padding:4px;background:var(--input);font-size:12px}
 .mon.closed{opacity:.55;background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--surface-2) 6px,var(--surface-2) 12px)}
 .mon .sw{height:4px;border-radius:2px}
+.mon .chk input{width:16px;flex:none}
+.mon .calday{display:flex;align-items:center;gap:4px}
+.mon .calday input{width:44px;flex:none}
+.mon .calday span{color:var(--ink-3);font-size:11.5px;white-space:nowrap}
+.mon .pill{font-size:10px;padding:1px 5px;text-align:center}
 .s-L{background:#9b9599}.s-M{background:#b18e72}.s-H{background:#455246}
 
 /* outlet cards */
@@ -369,7 +375,7 @@ const nz=v=>(isFinite(v)?v:0);
 const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
 
 function keysOf(S){return sum(S.r.types.map(t=>t.keys))}
-function openMonthsOf(S){return sum(S.cal.map((c,i)=>c.open?c.days/MDAYS[i]:0))}
+function openMonthsOf(S){return sum(S.cal.map((c,i)=>c.open?clamp(+c.days,0,MDAYS[i])/MDAYS[i]:0))}
 function seasonMonths(S){return S.st.season==null||S.st.season===''?Math.round(openMonthsOf(S)*10)/10:+S.st.season}
 function kidMult(S){return 1-S.r.kids/100*(1-S.r.kidSpend/100)}
 function bfOutlet(S){return S.f.outlets.findIndex(o=>o.meals.bf.on)}
@@ -412,7 +418,7 @@ function computeYear(S,y,scen){
   const monthly=[];
   S.cal.forEach((c,m)=>{
     if(!c.open||!(c.days>0)){monthly.push({occ:0,rev:0,sold:0});return}
-    const d=+c.days, s=c.season;
+    const d=clamp(+c.days,0,MDAYS[m]), s=c.season;
     const a=keys*d, oc=clamp(S.r.occ[m]+ramp.occ,0,100)/100, sd=a*oc, g=sd*S.r.dof, gpd=g/d;
     days+=d; avail+=a; sold+=sd; guests+=g;
     // Logis & Segmente
@@ -665,6 +671,7 @@ const CALC={
   seasonAuto:()=>e1(openMonthsOf(S)),
   rentFix:()=>e0(stab().rentFix)+' €',
   rentVar:()=>e0(stab().rentVar)+' €',
+  calOver:i=>{const c=S.cal[i];return c&&+c.days<MDAYS[i]&&c.days>0?`<span class="pill mute">Teilmonat</span>`:''},
   vatSt:k=>{const P=VATP[S.p.country]||VATP.XX;if(P[k]==null)return '<span class="pill mute">manuell</span>';return +S.vat[k]===+P[k]?'<span class="pill good">✓ Vorgabe</span>':`<span class="pill warn">abweichend</span>`},
   scK:a=>{const [k,f]=a.split(':');const R=computeYear(S,+S.p.stab,k);if(f==='tr')return e0(R.tr/1000);if(f==='gop')return pc(R.tr?R.gop/R.tr:0);return e0(R.ebitda/1000)},
   pr:a=>{const [y,k]=a.split(':');const R=RES[y];if(k==='occ')return pc(R.occ);if(k==='adr')return e0(R.adr);if(k==='tr')return e0(R.tr/1000);if(k==='gop')return pc(R.tr?R.gop/R.tr:0);if(k==='ebitda')return e0(R.ebitda/1000);if(k==='cal')return R.cal;return ''}
@@ -706,7 +713,7 @@ projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskal
    `<div class="tw"><div class="cal">${S.cal.map((c,i)=>`<div class="mon${c.open?'':' closed'}"><div class="sw s-${c.season}"></div><b>${MONTHS[i]}</b>
      ${cS(`cal.${i}.season`,SEASOPT,{rr:1,al:MONTHS[i]+' Saison'})}
      <label class="chk">${cB(`cal.${i}.open`,{rr:1,al:MONTHS[i]+' geöffnet'})} offen</label>
-     ${c.open?cN(`cal.${i}.days`,{al:MONTHS[i]+' Tage'}):'<span class="muted">–</span>'}</div>`).join('')}</div></div>
+     ${c.open?`<small class="muted">Öffnungstage</small><div class="calday">${cN(`cal.${i}.days`,{al:MONTHS[i]+' Öffnungstage'})}<span>/ ${MDAYS[i]}</span></div>${calc('calOver',i)}`:'<span class="muted">geschlossen</span>'}</div>`).join('')}</div></div>
    <p class="hint" style="margin-top:12px">Öffnungstage p.a.: <b>${calc('openDays')}</b> · Betriebsmonate: <b>${calc('openMonths')}</b></p>`)}),
 
 zimmer:()=>({t:'Zimmer & Belegung',lead:'Zimmerkategorien mit Aufpreis gegenüber der Basiskategorie und die Belegung je Monat im stabilisierten Jahr.',
@@ -1111,6 +1118,7 @@ function applyInput(el,isChange){
   if(t==='b')v=el.checked;
   else if(t==='n'){if(el.value===''){if(!isChange)return;v=el.dataset.null?null:0}else{v=parseFloat(el.value);if(!isFinite(v))return}}
   else v=el.value;
+  {const mm=p.match(/^cal\.(\d+)\.days$/);if(mm&&t==='n'&&v!=null){const mx=MDAYS[+mm[1]];if(v>mx||v<0){v=clamp(v,0,mx);if(isChange||v===mx){el.value=v;toast(`${MONTHS[+mm[1]]} hat maximal ${mx} Tage`)}}}}
   if(!ui.prev)ui.prev=stab(); setP(p,v);
   if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
   if(/^vat\.(rooms|food|bev)$/.test(p)){S.vat.checked=false}
