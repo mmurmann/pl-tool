@@ -1,0 +1,1448 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>mamu P&amp;L Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Lato:wght@400;700;900&family=Montserrat:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --olive:#77704a; --terra:#b18e72; --green:#455246; --char:#2e2c2d; --rule:#9b9599;
+  --bg:#f5f5f5; --surface:#ffffff; --surface-2:#eeece8; --ink:#2e2c2d; --ink-2:#5b5859; --ink-3:#8c8789;
+  --line:#e2dfda; --line-2:#c6c1c2; --accent:#455246; --accent-2:#b18e72; --num:#9a7659;
+  --signal:#77704a; --signal-ink:#ffffff; --input:#ffffff; --focus:#b18e72;
+  --good:#455246; --warn:#8a6a1c; --bad:#a8432f; --good-bg:#e4e9e4; --warn-bg:#f3ecd9; --bad-bg:#f4e2dc; --hl:#f1e8df;
+  --key:#f0efe9;
+  --display:"Lato","Segoe UI",Helvetica,Arial,sans-serif;
+  --sub:"Montserrat","Segoe UI",Helvetica,Arial,sans-serif;
+  --body:"Montserrat","Segoe UI",Helvetica,Arial,sans-serif;
+  --fig:"Futura","Futura PT","Jost","Century Gothic",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1f1e1e; --surface:#2a2829; --surface-2:#343132; --ink:#f0eeeb; --ink-2:#c3bfbd; --ink-3:#8f8a8b;
+    --line:#3c393a; --line-2:#5a5657; --accent:#a9b8aa; --accent-2:#c9a88d; --num:#d2b299;
+    --signal:#77704a; --signal-ink:#ffffff; --input:#242223; --focus:#c9a88d;
+    --good:#a9c2ab; --warn:#e0bd6a; --bad:#e8927c; --good-bg:#2c362d; --warn-bg:#3a3322; --bad-bg:#3e2823; --hl:#3a3128;
+    --key:#322f2d; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1f1e1e; --surface:#2a2829; --surface-2:#343132; --ink:#f0eeeb; --ink-2:#c3bfbd; --ink-3:#8f8a8b;
+  --line:#3c393a; --line-2:#5a5657; --accent:#a9b8aa; --accent-2:#c9a88d; --num:#d2b299;
+  --signal:#77704a; --signal-ink:#ffffff; --input:#242223; --focus:#c9a88d;
+  --good:#a9c2ab; --warn:#e0bd6a; --bad:#e8927c; --good-bg:#2c362d; --warn-bg:#3a3322; --bad-bg:#3e2823; --hl:#3a3128;
+  --key:#322f2d; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{font-family:var(--display);text-wrap:balance;margin:0;color:var(--ink);font-weight:700}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent-2)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--signal);color:#fff;
+  display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:18px;min-width:0}
+.brand svg{height:22px;width:auto;flex:none;fill:#fff}
+.brand span{font-family:var(--sub);font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:18px;border-left:1px solid rgba(255,255,255,.4)}
+.top .sp{flex:1}
+.tbtn{background:transparent;border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:4px;padding:6px 11px;cursor:pointer;font-size:12.5px;letter-spacing:.02em}
+.tbtn:hover{background:rgba(255,255,255,.12)}
+.top .topseg{border-color:rgba(255,255,255,.45)}
+.top .topseg button{background:transparent;color:#fff;padding:6px 11px;font-size:12.5px}
+.top .topseg button.on{background:#fff;color:#2e2c2d}
+.tbtn.solid{background:#fff;color:#2e2c2d;border-color:#fff;font-weight:700}
+.tbtn.solid:hover{background:#fff}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:230px minmax(0,1fr) 250px;gap:0;min-height:calc(100vh - 52px)}
+.app.result-mode{grid-template-columns:230px minmax(0,1fr)}
+.app.result-mode .live{display:none}
+nav.steps{border-right:1px solid var(--line);padding:18px 0;background:var(--surface)}
+nav.steps ol{list-style:none;margin:0;padding:0}
+nav.steps li button{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:0;
+  padding:8px 16px;cursor:pointer;color:var(--ink-2);font-size:13.5px;border-left:3px solid transparent}
+nav.steps li button:hover{background:var(--surface-2);color:var(--ink)}
+nav.steps li button .n{font-family:var(--fig);font-size:11px;font-weight:600;width:22px;height:22px;border-radius:50%;
+  display:grid;place-items:center;border:1px solid var(--line-2);color:var(--ink-2)}
+nav.steps li button.on{color:var(--ink);font-weight:700;border-left-color:var(--accent-2);background:var(--surface-2)}
+nav.steps li button.on .n{background:var(--green);border-color:var(--green);color:#fff}
+nav.steps li.res{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+nav.steps li.res button .n{border-color:var(--accent-2);color:var(--accent-2)}
+nav.steps .navnote{padding:14px 16px 0;font-size:12px;color:var(--ink-3)}
+
+main{padding-block:26px 60px;padding-inline:32px;min-width:0}
+.stephead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.eyebrow{font-family:var(--sub);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--num);font-weight:700}
+.stephead h1{font-size:23px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+.lead{color:var(--ink-2);max-width:72ch;margin:6px 0 22px}
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin-bottom:18px}
+section.block>h2{font-family:var(--sub);font-size:14px;font-weight:700;margin-bottom:4px}
+section.block>.hint{color:var(--ink-3);font-size:12.5px;margin:0 0 14px;max-width:80ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 16px}
+.grid.g3{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-2)}
+label.f>span{display:flex;gap:6px;align-items:flex-end;flex:1}
+.grid.row{grid-template-columns:repeat(var(--n,6),minmax(0,1fr))}
+.stack{display:flex;flex-direction:column}
+.stack>.usali{margin-bottom:18px}
+.occwrap{overflow-x:auto;margin-bottom:14px}
+.occsvg{width:100%;max-width:760px;min-width:520px;height:auto;display:block;touch-action:none;user-select:none}
+.occsvg .ocpt{cursor:ns-resize}
+table.mocc td{vertical-align:top}
+table.mocc tr.mfirst td{border-top:1px solid var(--line-2)}
+table.mocc tr td{border-bottom:0}
+table.mocc td input{min-width:46px;max-width:60px}
+table.mocc td .pill{display:block;margin-top:3px;font-size:10px;padding:1px 4px;text-align:center}
+.occsvg .s-L{fill:#9b9599}.occsvg .s-M{fill:#b18e72}.occsvg .s-H{fill:#455246}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.grid.row .inp em{padding:0 6px;font-size:11px}
+.grid.row .inp input{padding:7px 6px}
+.occsvg .ocpt:focus{outline:none;stroke-width:4}
+@media (max-width:1100px){.grid.row{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+.inp{display:flex;align-items:stretch;border:1px solid var(--line-2);border-radius:4px;background:var(--input);overflow:hidden}
+.inp:focus-within{border-color:var(--focus);box-shadow:0 0 0 2px color-mix(in srgb,var(--focus) 25%,transparent)}
+.inp input,.inp select{border:0;background:transparent;padding:7px 9px;width:100%;min-width:0;outline:none;text-align:right}
+.inp select,.inp input[type=text]{text-align:left}
+.inp em{font-style:normal;color:var(--ink-3);font-size:12px;padding:0 9px;display:flex;align-items:center;background:var(--surface-2);border-left:1px solid var(--line);white-space:nowrap}
+.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%,30%{background:var(--hl);box-shadow:0 0 0 3px var(--accent-2)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none;outline:3px solid var(--accent-2)}}
+.tip{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line-2);font-size:10px;color:var(--ink-3);cursor:help;flex:none}
+
+/* tables */
+.tw{overflow-x:auto;margin:0 -4px;padding:0 4px}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{font-family:var(--sub);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding:6px 6px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.t td input,table.t td select{width:100%;min-width:52px;max-width:110px;border:1px solid var(--line-2);border-radius:3px;background:var(--input);padding:5px 6px;text-align:right}
+table.t td input[type=text],table.t td select{text-align:left;min-width:120px;max-width:none}
+table.t td input:focus,table.t td select:focus{outline:none;border-color:var(--focus)}
+table.t tfoot td{font-weight:700;border-top:1px solid var(--line-2);border-bottom:0}
+table.t td.muted{color:var(--ink-3)}
+.xbtn{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:3px}
+.xbtn:hover{color:var(--bad);background:var(--bad-bg)}
+.addbtn{margin-top:10px;background:none;border:1px dashed var(--line-2);color:var(--ink-2);border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12.5px}
+.addbtn:hover{border-color:var(--accent);color:var(--ink)}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink);cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--green)}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(12,minmax(64px,1fr));gap:6px;min-width:820px}
+.mon{border:1px solid var(--line);border-radius:5px;padding:8px 6px;background:var(--surface);display:flex;flex-direction:column;gap:5px;font-size:12px}
+.mon b{font-family:var(--sub);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.mon select,.mon input{width:100%;border:1px solid var(--line-2);border-radius:3px;padding:4px;background:var(--input);font-size:12px}
+.mon.closed{opacity:.55;background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--surface-2) 6px,var(--surface-2) 12px)}
+.mon .sw{height:4px;border-radius:2px}
+.s-L{background:#9b9599}.s-M{background:#b18e72}.s-H{background:#455246}
+
+/* outlet cards */
+.outlet{border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:14px;background:var(--surface)}
+.outlet-head{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+.outlet-head .grow{flex:1;min-width:180px}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:700}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.mute{background:var(--surface-2);color:var(--ink-3)}
+
+/* module result */
+.modres{border:1px solid var(--line-2);border-radius:6px;background:var(--surface-2);padding:14px 18px;margin-top:6px}
+.modres h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 18px}
+.kv div{display:flex;flex-direction:column}
+.kv small{color:var(--ink-3);font-size:11.5px}
+.kv strong{font-family:var(--fig);font-size:19px;font-weight:600;color:var(--num)}
+.warnbox{margin-top:10px;padding:8px 12px;border-radius:4px;background:var(--warn-bg);color:var(--warn);font-size:12.5px}
+.infobox{margin:0 0 14px;padding:9px 12px;border-radius:4px;background:var(--surface-2);color:var(--ink-2);font-size:12.5px;border-left:3px solid var(--accent-2)}
+
+.stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:24px}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:4px;padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+
+/* live panel */
+.live{border-left:1px solid var(--line);background:var(--surface);padding:20px 18px}
+.live-in{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px)}
+.live h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.live .yr{font-size:12.5px;color:var(--ink-2);margin:2px 0 14px}
+.lrow{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);gap:8px}
+.lrow span{color:var(--ink-2);font-size:12.5px}
+.lrow b{font-family:var(--fig);font-weight:600;font-size:15px}
+.lrow.big b{font-size:19px;color:var(--num)}
+.lrow i{font-style:normal;font-size:11.5px;color:var(--ink-3);margin-left:4px}
+.delta{font-size:11px;font-weight:700;margin-left:4px}
+.delta.up{color:var(--good)}.delta.dn{color:var(--bad)}
+.live .btn{width:100%;margin-top:16px}
+
+/* ---------- result ---------- */
+.res-toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin:4px 0 18px}
+.res-toolbar label.f{min-width:150px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:7px 12px;cursor:pointer;font-size:12.5px}
+.seg button.on{background:var(--char);color:#fff;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:22px}
+.kpi{background:var(--surface);padding:12px 14px}
+.kpi small{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-family:var(--sub);font-weight:600}
+.kpi strong{display:block;font-family:var(--fig);font-size:24px;font-weight:600;margin-top:3px;color:var(--num)}
+.kpi span{font-size:12px;color:var(--ink-2)}
+.usali{border:1px solid var(--line);border-radius:6px;background:var(--surface);margin-bottom:22px}
+.usali-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:14px 16px 8px;border-bottom:1px solid var(--line-2)}
+.usali-h h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.usali-h small{color:var(--ink-3)}
+table.u{border-collapse:collapse;width:100%;font-size:12.5px}
+table.u th{font-family:var(--sub);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:right;padding:8px 8px 6px;white-space:nowrap;border-bottom:1px solid var(--line)}
+table.u th .ys{display:block;font-size:10px;letter-spacing:.02em;text-transform:none;font-weight:500}
+table.u th:first-child{text-align:left}
+table.u td{padding:4px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+table.u td:first-child{text-align:left;white-space:normal;min-width:210px}
+table.u tr.sub td:first-child{padding-left:22px;color:var(--ink-2)}
+table.u tr.sub td{color:var(--ink-2)}
+table.u tr.sub2 td:first-child{padding-left:36px;color:var(--ink-3);font-size:12px}
+table.u tr.sub2 td{color:var(--ink-3);font-size:12px}
+table.u tr.hd td{font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--num);padding-top:14px;border-bottom:0}
+table.u tr.tot td{font-weight:700;border-top:1px solid var(--line-2)}
+table.u tr.key td{font-weight:700;background:var(--key);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+table.u tr.key.gop td{border-top:2px solid var(--green)}
+table.u td.dy,table.u th.dy{background:color-mix(in srgb,var(--terra) 12%,transparent)}
+table.u td.pc{color:var(--ink-3);font-size:11.5px}
+.pv{display:inline-block;min-width:2.9em;margin-left:6px;font-size:10px;font-weight:400;color:var(--ink-3);text-align:right;vertical-align:baseline}
+.pvh{display:inline-block;min-width:2.9em;margin-left:6px;font-size:9px;text-align:right}
+table.u tr.key .pv,table.u tr.tot .pv{font-weight:700}
+table.u td.neg{color:var(--bad)}
+.lnk{background:none;border:0;padding:0;cursor:pointer;color:inherit;text-align:left;font:inherit;display:inline-flex;gap:6px;align-items:baseline}
+.lnk::after{content:"\2197";font-size:10px;color:var(--accent-2);opacity:0;transition:opacity .15s}
+.lnk:hover{color:var(--accent-2)}
+.lnk:hover::after,.lnk:focus-visible::after{opacity:1}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px}
+.note{font-size:12px;color:var(--ink-3);max-width:90ch}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:5px;font-size:13px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border-radius:5px;padding:10px 14px;margin:0 0 16px}
+.chart{width:100%;max-width:920px;height:auto;display:block}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  .app{grid-template-columns:210px minmax(0,1fr)}
+  .live{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}
+  .live-in{position:static;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:0 18px}
+  .live-in h3,.live-in .yr,.live-in .btn{grid-column:1/-1}
+}
+@media (max-width:760px){
+  .app,.app.result-mode{grid-template-columns:minmax(0,1fr)}
+  nav.steps{border-right:0;border-bottom:1px solid var(--line);padding:6px 0;overflow-x:auto}
+  nav.steps ol{display:flex;padding:0 10px}
+  nav.steps li button{grid-template-columns:22px auto;white-space:nowrap;border-left:0;border-bottom:3px solid transparent;padding:8px 10px}
+  nav.steps li button.on{border-bottom-color:var(--accent-2)}
+  nav.steps li.res{margin:0;padding:0;border:0}
+  nav.steps .navnote{display:none}
+  main{padding-inline:16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top{padding:10px 16px;position:static}
+  .cols2{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+  .top,nav.steps,.live,.res-toolbar,.stepnav,.noprint{display:none!important}
+  .app{display:block}
+  main{padding:0}
+  body{background:#fff;color:#000;font-size:10px}
+  .usali,.kpis{break-inside:auto;border-color:#bbb}
+  table.u{font-size:9px}
+  table.u td:first-child{min-width:0}
+  .lnk::after{display:none}
+}
+</style>
+</head><body>
+
+<header class="top">
+  <div class="brand"><svg viewBox="805 346 1890 308" role="img" aria-label="mamu"><path d="m1213.01,346.9c-52.97,0-99.74,27.05-127.24,68.05-27.5-41-74.27-68.05-127.24-68.05-84.43,0-153.12,68.69-153.12,153.12v153.12h51.76v-153.12c0-55.890,45.47-101.36,101.36-101.36s101.36,45.47,101.36,101.36v153.12h51.76v-153.12c0-55.89,45.47-101.36,101.36-101.36s101.36,45.47,101.36,101.36v153.12h51.76v-153.12c0-84.43-68.69-153.12-153.12-153.12Z"/><path d="m2183.48,346.9c-52.97,0-99.74,27.050-127.24,68.05-27.5-41-74.27-68.05-127.24-68.05-84.43,0-153.12,68.69-153.12,153.12v153.12h51.76v-153.12c0-55.89,45.47-101.36,101.36-101.36s101.37,45.47,101.37,101.36v153.12h51.76v-153.12c0-55.89,45.47-101.36,101.36-101.36s101.370,45.47,101.37,101.36v153.12h51.76v-153.12c0-84.43-68.69-153.12-153.12-153.12Z"/><path d="m2642.84,346.86v153.17c0,55.89-45.47,101.36-101.37,101.36s-101.36-45.47-101.36-101.36v-153.12h-51.76v153.12c0,84.43,68.69,153.12,153.12,153.12s153.12-68.69,153.12-153.12v-153.17h-51.76Z"/><path d="m1571,346.9c-84.43,0-153.12,68.69-153.12,153.12s68.69,153.12,153.12,153.12h49.61v-51.76h-49.61c-55.89,0-101.36-45.47-101.36-101.36s45.47-101.36,101.36-101.36,100.86,45.020,101.32,100.52h0v153.96h51.76v-153.96h.02c-.46-84.04-68.95-152.28-153.1-152.28Z"/></svg><span id="projTitle">P&amp;L Tool</span></div>
+  <div class="sp"></div>
+  <div class="seg topseg" id="scenSeg" role="group" aria-label="Szenario"></div>
+  <button class="tbtn" id="btnSave" type="button" title="Projekt als JSON-Datei sichern">Projekt sichern</button>
+  <button class="tbtn" id="btnLoad" type="button" title="Gesichertes Projekt (JSON) laden">Projekt laden</button>
+  <button class="tbtn" id="btnReset" type="button">Neu / Beispiel</button>
+  <button class="tbtn solid" id="btnPdfTop" type="button">USALI als PDF</button>
+  <input type="file" id="fileIn" accept=".json,application/json" hidden>
+</header>
+<div class="app" id="app">
+  <nav class="steps" aria-label="Eingabeschritte"><ol id="stepList"></ol>
+    <p class="navnote">Eingaben werden automatisch in diesem Browser gespeichert.</p>
+  </nav>
+  <main id="main"></main>
+  <aside class="live" aria-label="Live-Ergebnis"><div class="live-in" id="live"></div></aside>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+/* ================= Konstanten ================= */
+const MONTHS=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+const SEAS={L:'Nebensaison',M:'Zwischensaison',H:'Hauptsaison'};
+const MEALS=[['bf','Frühstück'],['lu','Mittag'],['af','Nachmittag / Café'],['di','Abendessen'],['bar','Bar / Abend']];
+const DEPTS=[['Rooms','Rooms'],['F&B','Food & Beverage'],['Spa','Spa'],['OOD','Other Operated Dept.'],['A&G','Administrative & General'],['IT','Information & Telecom. Systems'],['S&M','Sales & Marketing'],['POM','Property Operation & Maintenance']];
+const VATP={AT:{rooms:10,food:10,n:'Österreich'},DE:{rooms:7,food:7,n:'Deutschland'},IT:{rooms:10,food:10,n:'Italien'},HR:{rooms:13,food:13,n:'Kroatien'},CH:{rooms:3.8,food:8.1,n:'Schweiz'},FR:{rooms:10,food:10,n:'Frankreich'},XX:{rooms:10,food:10,n:'Anderes Land'}};
+const LS_KEY='mamu-pl-tool-v1';
+
+function meal(on,cap,ext,food,bev,turns){return {on,cap,ext,food,bev,turns}}
+function defaults(){
+  return {
+    v:4, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
+    p:{name:'Beispiel: Alpenresort 72 Keys',location:'Tirol',country:'AT',cls:'Upscale',type:'Resort',
+       baseYear:2026,openYear:2028,stab:3,gfa:7000,spaArea:900},
+    vat:{rooms:10,food:10},
+    idx:{rev:2.5,cost:2.5,wage:0.5},
+    cal:[['H',1,31],['H',1,28],['H',1,31],['M',1,30],['L',1,31],['M',1,30],['H',1,31],['H',1,31],['M',1,30],['L',1,31],['L',0,30],['H',1,31]]
+        .map(([s,o,d])=>({season:s,open:!!o,days:d})),
+    r:{types:[{name:'Doppelzimmer Classic',keys:40,size:28,prem:0},{name:'Doppelzimmer Superior',keys:20,size:34,prem:35},
+              {name:'Junior Suite',keys:8,size:45,prem:80},{name:'Familiensuite',keys:4,size:58,prem:120}],
+       occ:[78,85,72,45,48,66,82,88,72,52,0,70],dof:1.9,kids:15,kidSpend:50,
+       rate:{L:185,M:220,H:275},pkg:'BB',bfSplit:24,hbSplit:38,
+       segs:[{name:'Corporate',L:8,M:5,H:2,disc:-10},{name:'Packages / Promotion',L:20,M:15,H:10,disc:-15},
+             {name:'Reiseveranstalter / Wholesale',L:5,M:5,H:3,disc:-20},{name:'MICE (Seminargäste)',L:10,M:8,H:2,disc:-8},
+             {name:'Gruppen (Leisure)',L:8,M:5,H:3,disc:-20}],
+       exp:{comm:10,resv:1,supplies:5,laundry:7,contract:0,other:1.5}},
+    f:{outlets:[
+        {name:'Restaurant (All Day Dining)',type:'Restaurant',seats:110,dpw:7,meals:{bf:meal(true,100,4,22,4,1.6),lu:meal(true,15,10,24,7,1),af:meal(false,0,0,0,0,1),di:meal(true,55,12,42,18,1.2),bar:meal(false,0,0,0,0,1)}},
+        {name:'Bar & Lounge',type:'Bar',seats:45,dpw:7,meals:{bf:meal(false,0,0,0,0,1),lu:meal(false,0,0,0,0,1),af:meal(true,20,8,8,7,1.5),di:meal(false,0,0,0,0,1),bar:meal(true,35,10,3,16,2)}},
+        {name:'Spa-Bistro',type:'Spa Bistro',seats:25,dpw:7,meals:{bf:meal(false,0,0,0,0,1),lu:meal(true,12,3,16,6,1.5),af:meal(true,10,2,6,5,1.5),di:meal(false,0,0,0,0,1),bar:meal(false,0,0,0,0,1)}}],
+       ext:{L:70,M:100,H:125},minibar:3.5,
+       exp:{food:28,bev:22,other:35,china:1.2,supplies:2.5,laundry:1.0,ent:18000,otherPct:1.0}},
+    m:{rooms:[{name:'Seminarraum Alpe',sqm:80,cap:60,pax:22,rent:450,rentHalf:280,days:[5,6,7,6,5,6,2,2,7,7,0,3],half:[3,3,4,3,3,3,1,1,4,4,0,2]},
+              {name:'Seminarraum Stube',sqm:45,cap:25,pax:12,rent:250,rentHalf:150,days:[4,5,6,5,4,5,2,2,6,6,0,2],half:[2,3,3,3,2,3,1,1,3,3,0,1]}],
+       dpw:5,
+       pk:{full:{food:42,bev:12,it:8,misc:5},half:{food:26,bev:8,it:6,misc:3}},itCost:25,miscCost:40,
+       banq:{events:12,pax:80,spend:95,bevShare:35}},
+    s:{rooms:4,hours:10,dur:60,buf:15,dpw:7,cap:12,ext:2,price:105,ext_f:{L:80,M:100,H:120},
+       dayGuests:8,fee:55,hotelPaid:0,hotelFee:0,members:40,memberFee:89,retailGuests:6,retailSpend:35,other:8000,
+       prodH:6.5,weeks:46,salary:2350,comm:5,
+       exp:{product:8,retail:55,linen:4,supplies:3,other:2}},
+    o:{items:[{name:'Tiefgarage',drv:'day',qty:25,price:15,amt:0,cos:0,exp:10},
+              {name:'Shop / Boutique',drv:'por',qty:0,price:1.8,amt:0,cos:55,exp:5},
+              {name:'E-Bike-Verleih',drv:'day',qty:6,price:45,amt:0,cos:5,exp:15}],
+       miscPor:1.5,lease:0},
+    st:{factor:1.36,salaries:14,workDays:5,season:null,meal:4.5,mealDays:220,
+        hkAuto:true,rpa:13,hkSal:1900,
+        pos:[
+         ['Rooms','Front Office Manager',1,0,0,true,3400,'FY'],['Rooms','Rezeption',1,1,1,false,2300,'FY'],['Rooms','Night Audit',0,0,1,false,2400,'FY'],
+         ['Rooms','Hausdame / Exec. Housekeeper',1,0,0,true,2900,'FY'],['Rooms','Public Area',0,1,0,false,1900,'S'],
+         ['F&B','F&B Manager',1,0,0,true,3600,'FY'],['F&B','Restaurantleitung',0,1,0,true,3000,'FY'],['F&B','Service',2,1,3,false,2250,'S'],
+         ['F&B','Bar',0,0,2,false,2300,'S'],['F&B','Küchenchef',1,0,0,true,4200,'FY'],['F&B','Sous Chef',0,1,0,true,3200,'FY'],
+         ['F&B','Chef de Partie',1,0,2,false,2600,'S'],['F&B','Commis',1,1,1,false,2150,'S'],['F&B','Abwasch / Steward',1,0,1,false,1950,'S'],
+         ['Spa','Spa Manager',1,0,0,true,3200,'FY'],['Spa','Spa-Rezeption',1,0,1,false,2100,'S'],['Spa','Spa Attendant',1,0,1,false,1950,'S'],
+         ['POM','Haustechnik',1,1,0,true,2800,'FY'],['S&M','Sales & Marketing Manager',1,0,0,true,3800,'FY'],['S&M','Reservierung / Revenue',1,0,0,true,2700,'FY'],
+         ['A&G','General Manager',1,0,0,true,6500,'FY'],['A&G','Buchhaltung / HR',2,0,0,true,3000,'FY']
+        ].map(([dept,pos,e,m,l,hf,sal,fs])=>({dept,pos,e,m,l,hf,sal,fs}))},
+    u:{agPct:2.0,agFix:45000,cc:1.2,itPct:0.8,itKey:300,smPct:2.5,royR:0,royF:0,mkt:0,loy:0,
+       pomPct:1.8,pomKey:350,utM2:22,utSpa:45,utPor:2.5,base:2.5,inc:8},
+    n:{income:0,rentMode:'var',rentKey:600,rentRooms:25,rentOther:10,tax:0.4,ins:0.5,other:0.3,bldg:0},
+    proj:{rows:[{occ:-10,adr:-8,ext:-25,ffe:1},{occ:-5,adr:-4,ext:-10,ffe:2},{occ:0,adr:0,ext:0,ffe:3}]
+          .concat(Array.from({length:7},()=>({occ:0,adr:0,ext:0,ffe:4})))}
+  };
+}
+
+/* ================= Rechenkern ================= */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const nz=v=>(isFinite(v)?v:0);
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+
+function keysOf(S){return sum(S.r.types.map(t=>t.keys))}
+function openMonthsOf(S){return sum(S.cal.map((c,i)=>c.open?c.days/MDAYS[i]:0))}
+function seasonMonths(S){return S.st.season==null||S.st.season===''?Math.round(openMonthsOf(S)*10)/10:+S.st.season}
+function kidMult(S){return 1-S.r.kids/100*(1-S.r.kidSpend/100)}
+function bfOutlet(S){return S.f.outlets.findIndex(o=>o.meals.bf.on)}
+function diOutlet(S){return S.f.outlets.findIndex(o=>o.meals.di.on)}
+/* Verpflegungs-Split netto je Person (Package Allocation) */
+function pkgNet(S){
+  let v=0;
+  if(S.r.pkg==='BB'||S.r.pkg==='HB') v+= +S.r.bfSplit||0;
+  if(S.r.pkg==='HB') v+= +S.r.hbSplit||0;
+  return v;
+}
+function segRetail(S,s){return 100-sum(S.r.segs.map(g=>g[s]))}
+function avgPrem(S){const k=keysOf(S);return k?sum(S.r.types.map(t=>t.keys*t.prem))/k:0}
+/* Logis-Nettopreis (heutige Werte) je Saison für die gewichtete Zimmerkategorie, vor Segmentrabatten */
+function logisNet(S,s){
+  return +S.r.rate[s]+avgPrem(S)-pkgNet(S)*S.r.dof*kidMult(S);
+}
+/* Brutto-Gegenwert je Zimmer (nur Info) */
+function grossRate(S,s){return logisNet(S,s)*(1+S.vat.rooms/100)+pkgNet(S)*S.r.dof*kidMult(S)*(1+S.vat.food/100)}
+function spaSlots(S){return Math.floor(S.s.hours*60/Math.max(1,(+S.s.dur + +S.s.buf)))}
+
+const SCEN=['Base','High','Low'];
+function scenOf(S,sc){sc=sc||S.scen||'Base';return sc==='Base'?{occ:0,adr:0,ext:0,cost:0}:(S.sc&&S.sc[sc])||{occ:0,adr:0,ext:0,cost:0}}
+function computeYear(S,y,scen){
+  const R={y}; const r0=S.proj.rows[y-1]||{occ:0,adr:0,ext:0,ffe:0}, SC=scenOf(S,scen);
+  const ramp={occ:(+r0.occ||0)+(+SC.occ||0),adr:((1+(+r0.adr||0)/100)*(1+(+SC.adr||0)/100)-1)*100,ext:((1+(+r0.ext||0)/100)*(1+(+SC.ext||0)/100)-1)*100,ffe:r0.ffe};
+  const cal=S.p.openYear+y-1, n=cal-S.p.baseYear, cf=1+(+SC.cost||0)/100;
+  const pi=Math.pow(1+S.idx.rev/100,n), ci=Math.pow(1+S.idx.cost/100,n)*cf, wi=Math.pow(1+(+S.idx.cost + +S.idx.wage)/100,n)*cf;
+  Object.assign(R,{cal,pi,ci,wi,scen:scen||S.scen||'Base'});
+  const keys=keysOf(S), km=kidMult(S), extR=1+ramp.ext/100;
+  const bfI=bfOutlet(S), diI=diOutlet(S);
+  // Akkumulatoren
+  let days=0,avail=0,sold=0,guests=0;
+  const seg=S.r.segs.map(g=>({name:g.name,rn:0,rev:0})); const segRet={name:'Retail / Direkt',rn:0,rev:0};
+  const outl=S.f.outlets.map(o=>({name:o.name,food:0,bev:0,covers:0,util:0,meals:{}}));
+  const miceRoom=S.m.rooms.map(r=>({name:r.name,days:0,rev:0})); let miceAvail=0, spaRetail=0;
+  let minibar=0, miceDays=0, miceDel=0, miceFood=0, miceBev=0, miceRent=0, miceIt=0, miceMisc=0, miceFull=0, miceHalf=0;
+  let spaT=0,spaRev=0,spaLost=0,spaHours=0,spaUtilMax=0,spaCapT=0,dayG=0,entr=0,spaDays=0;
+  let hkFteY=0,hkFteOpen=0, oodDays=0;
+  const monthly=[];
+  S.cal.forEach((c,m)=>{
+    if(!c.open||!(c.days>0)){monthly.push({occ:0,rev:0,sold:0});return}
+    const d=+c.days, s=c.season;
+    const a=keys*d, oc=clamp(S.r.occ[m]+ramp.occ,0,100)/100, sd=a*oc, g=sd*S.r.dof, gpd=g/d;
+    days+=d; avail+=a; sold+=sd; guests+=g;
+    // Logis & Segmente
+    const ret=logisNet(S,s)*pi*(1+ramp.adr/100);
+    const rs=segRetail(S,s)/100;
+    segRet.rn+=sd*rs; segRet.rev+=sd*rs*ret;
+    let mrev=sd*rs*ret;
+    S.r.segs.forEach((gg,i)=>{const sh=gg[s]/100;seg[i].rn+=sd*sh;const v=sd*sh*ret*(1+gg.disc/100);seg[i].rev+=v;mrev+=v});
+    monthly.push({occ:oc,rev:mrev,sold:sd});
+    // F&B Outlets
+    const exF=S.f.ext[s]/100*extR;
+    S.f.outlets.forEach((o,i)=>{
+      const od=d*o.dpw/7;
+      MEALS.forEach(([k])=>{
+        const ml=o.meals[k]; if(!ml.on) return;
+        let cap=+ml.cap, split=null;
+        if(k==='bf'&&i===bfI&&(S.r.pkg==='BB'||S.r.pkg==='HB')){cap=100;split=+S.r.bfSplit||0}
+        if(k==='di'&&i===diI&&S.r.pkg==='HB'){cap=100;split=+S.r.hbSplit||0}
+        const hc=gpd*cap/100, ec=ml.ext*exF, cov=hc+ec;
+        const tot=(+ml.food)+(+ml.bev), fs=tot>0?ml.food/tot:1;
+        const hf=split==null?ml.food:split*fs, hb=split==null?ml.bev:split*(1-fs);
+        const f=(hc*km*hf+ec*ml.food)*pi*od, b=(hc*km*hb+ec*ml.bev)*pi*od;
+        const O=outl[i]; O.food+=f;O.bev+=b;O.covers+=cov*od;
+        const u=o.seats>0&&ml.turns>0?cov/(o.seats*ml.turns):0;
+        const M=O.meals[k]||(O.meals[k]={covers:0,rev:0,util:0});
+        M.covers+=cov*od;M.rev+=f+b;M.util=Math.max(M.util,u);O.util=Math.max(O.util,u);
+      });
+    });
+    minibar+=S.f.minibar*sd*pi;
+    // MICE
+    const md=d*S.m.dpw/7; miceAvail+=S.m.rooms.length*md;
+    const PF=S.m.pk.full, PH=S.m.pk.half;
+    S.m.rooms.forEach((rm,j)=>{
+      const fd=Math.min(d,rm.days?+rm.days[m]||0:0), hd=Math.min(Math.max(0,(d-fd)*2),rm.half?+rm.half[m]||0:0);
+      const fu=fd*extR, hu=hd*extR, px=+rm.pax||0;
+      const f=(fu*PF.food+hu*PH.food)*px*pi, b=(fu*PF.bev+hu*PH.bev)*px*pi, it=(fu*PF.it+hu*PH.it)*px*pi, mi=(fu*PF.misc+hu*PH.misc)*px*pi;
+      const rt=(fu*(+rm.rent||0)+hu*(+rm.rentHalf||0))*pi;
+      miceFood+=f;miceBev+=b;miceIt+=it;miceMisc+=mi;miceRent+=rt;miceFull+=fu;miceHalf+=hu;
+      miceDays+=fu+hu/2; miceDel+=(fu+hu)*px;
+      miceRoom[j].days+=fu+hu/2; miceRoom[j].rev+=f+b+it+mi+rt;});
+    // Spa
+    const spd=d*S.s.dpw/7, capD=S.s.rooms*spaSlots(S);
+    const spF=S.s.ext_f[s]/100*extR;
+    const dem=gpd*S.s.cap/100+S.s.ext*spF, t=Math.min(dem,capD);
+    spaT+=t*spd; spaLost+=(dem-t)*spd; spaRev+=t*spd*S.s.price*pi; spaHours+=t*spd*S.s.dur/60; spaCapT+=capD*spd; spaDays+=spd;
+    spaUtilMax=Math.max(spaUtilMax,capD?dem/capD:0);
+    spaRetail+=S.s.retailGuests*S.s.retailSpend*spd*pi;
+    const dg=S.s.dayGuests*spF*spd; dayG+=dg; entr+=dg*S.s.fee*pi+gpd*S.s.hotelPaid/100*spd*S.s.hotelFee*pi;
+    // Housekeeping auto
+    if(S.st.hkAuto&&S.st.rpa>0){const fte=(sd/d)/S.st.rpa*7/S.st.workDays; hkFteY+=fte*d/365; hkFteOpen+=fte*d}
+    oodDays+=d;
+  });
+  const openMonths=openMonthsOf(S);
+  R.keys=keys;R.days=days;R.avail=avail;R.sold=sold;R.guests=guests;R.monthly=monthly;
+  R.occ=avail?sold/avail:0;
+  R.seg=[segRet].concat(seg);
+  R.roomsRev=sum(R.seg.map(x=>x.rev)); R.adr=sold?R.roomsRev/sold:0; R.revpar=avail?R.roomsRev/avail:0;
+  // F&B
+  const bq=S.m.banq, bqRev=bq.events*bq.pax*bq.spend*pi*extR;
+  R.outl=outl;
+  R.fb={food:sum(outl.map(o=>o.food))+miceFood+bqRev*(1-bq.bevShare/100),
+        bev:sum(outl.map(o=>o.bev))+miceBev+bqRev*bq.bevShare/100,
+        minibar, rent:miceRent, it:miceIt, misc:miceMisc};
+  R.fb.other=minibar+miceRent+miceIt+miceMisc;
+  R.fb.rev=R.fb.food+R.fb.bev+R.fb.other;
+  R.mice={days:miceDays,full:miceFull,half:miceHalf,del:miceDel,food:miceFood,bev:miceBev,it:miceIt,misc:miceMisc,rev:miceFood+miceBev+miceIt+miceMisc+miceRent,rent:miceRent,bq:bqRev,util:miceAvail?miceDays/miceAvail:0,rooms:miceRoom};
+  R.fb.covers=sum(outl.map(o=>o.covers));
+  // Spa
+  R.spa={treat:spaRev,entr,mem:S.s.members*S.s.memberFee*pi*openMonths,retail:spaRetail,other:S.s.other*pi,
+         t:spaT,lost:spaLost,util:spaCapT?spaT/spaCapT:0,peak:spaUtilMax,dayG,hours:spaHours};
+  R.spa.rev=R.spa.treat+R.spa.entr+R.spa.mem+R.spa.retail+R.spa.other;
+  // OOD
+  R.ood=S.o.items.map(it=>{let v=0; if(it.drv==='day')v=it.qty*it.price*oodDays*pi*extR; else if(it.drv==='por')v=it.price*sold*pi; else v=it.amt*pi;
+    return {name:it.name,rev:v,cos:v*it.cos/100,exp:v*it.exp/100}});
+  R.oodRev=sum(R.ood.map(x=>x.rev));
+  R.misc=S.o.miscPor*sold*pi+S.o.lease*pi;
+  R.tr=R.roomsRev+R.fb.rev+R.spa.rev+R.oodRev+R.misc;
+  // Personal
+  const sm=seasonMonths(S), mealY=S.st.meal*S.st.mealDays*ci;
+  const pay={}; DEPTS.forEach(([k])=>pay[k]={fte:0,fteY:0,wages:0,rel:0,contract:0,extra:0});
+  S.st.pos.forEach(p=>{
+    const heads=(+p.e)+(+p.m)+(+p.l); const fte=p.hf?heads:heads*7/S.st.workDays; const mf=p.fs==='FY'?1:sm/12;
+    const w=fte*p.sal*wi*S.st.salaries*mf; const P=pay[p.dept]; if(!P) return;
+    P.fte+=fte;P.fteY+=fte*mf;P.wages+=w;P.rel+=w*(S.st.factor-1)+fte*mf*mealY;
+  });
+  // automatische Zimmermädchen
+  R.hk={fteOpen:days?hkFteOpen/days:0,fteY:hkFteY};
+  if(S.st.hkAuto){const w=hkFteY*S.st.hkSal*wi*S.st.salaries;pay.Rooms.fte+=R.hk.fteOpen;pay.Rooms.fteY+=hkFteY;pay.Rooms.wages+=w;pay.Rooms.rel+=w*(S.st.factor-1)+hkFteY*mealY}
+  // Spa-Therapeut:innen aus Behandlungsstunden
+  const prodY=S.s.prodH*S.st.workDays*S.s.weeks; const thY=prodY?spaHours/prodY:0;
+  R.spa.therFteY=thY; R.spa.therFteOpen=openMonths?thY*12/openMonths:0;
+  {const w=thY*S.s.salary*wi*S.st.salaries;pay.Spa.fte+=R.spa.therFteOpen;pay.Spa.fteY+=thY;pay.Spa.wages+=w;pay.Spa.rel+=w*(S.st.factor-1)+thY*mealY;pay.Spa.extra=spaRev*S.s.comm/100}
+  pay.Rooms.contract=S.r.exp.contract*sold*ci;
+  Object.values(pay).forEach(P=>P.total=P.wages+P.rel+P.contract+P.extra);
+  R.pay=pay; R.fte=sum(Object.values(pay).map(p=>p.fte)); R.fteY=sum(Object.values(pay).map(p=>p.fteY));
+  R.payTotal=sum(Object.values(pay).map(p=>p.total));
+  // Departmental Expenses
+  const E=S.r.exp;
+  R.dRooms={labor:pay.Rooms.total,comm:R.roomsRev*E.comm/100,resv:R.roomsRev*E.resv/100,supplies:E.supplies*sold*ci,laundry:E.laundry*sold*ci,other:R.roomsRev*E.other/100};
+  R.dRooms.otherTot=R.dRooms.comm+R.dRooms.resv+R.dRooms.supplies+R.dRooms.laundry+R.dRooms.other;
+  R.dRooms.exp=R.dRooms.labor+R.dRooms.otherTot; R.dRooms.profit=R.roomsRev-R.dRooms.exp;
+  const FE=S.f.exp, fr=R.fb.rev;
+  R.dFb={cosF:R.fb.food*FE.food/100,cosB:R.fb.bev*FE.bev/100,cosO:minibar*FE.other/100+miceIt*S.m.itCost/100+miceMisc*S.m.miscCost/100,labor:pay['F&B'].total,
+         china:fr*FE.china/100,supplies:fr*FE.supplies/100,laundry:fr*FE.laundry/100,ent:FE.ent*ci,other:fr*FE.otherPct/100};
+  R.dFb.cos=R.dFb.cosF+R.dFb.cosB+R.dFb.cosO; R.dFb.otherTot=R.dFb.china+R.dFb.supplies+R.dFb.laundry+R.dFb.ent+R.dFb.other;
+  R.dFb.exp=R.dFb.cos+R.dFb.labor+R.dFb.otherTot; R.dFb.profit=fr-R.dFb.exp;
+  const SE=S.s.exp;
+  R.dSpa={cosT:spaRev*SE.product/100,cosR:R.spa.retail*SE.retail/100,labor:pay.Spa.total,linen:SE.linen*(spaT+dayG)*ci,supplies:R.spa.rev*SE.supplies/100,other:R.spa.rev*SE.other/100};
+  R.dSpa.cos=R.dSpa.cosT+R.dSpa.cosR; R.dSpa.otherTot=R.dSpa.linen+R.dSpa.supplies+R.dSpa.other;
+  R.dSpa.exp=R.dSpa.cos+R.dSpa.labor+R.dSpa.otherTot; R.dSpa.profit=R.spa.rev-R.dSpa.exp;
+  R.dOod={cos:sum(R.ood.map(x=>x.cos)),labor:pay.OOD.total,other:sum(R.ood.map(x=>x.exp))};
+  R.dOod.exp=R.dOod.cos+R.dOod.labor+R.dOod.other; R.dOod.profit=R.oodRev-R.dOod.exp;
+  R.deptExp=R.dRooms.exp+R.dFb.exp+R.dSpa.exp+R.dOod.exp;
+  R.deptProfit=R.tr-R.deptExp;
+  // Undistributed
+  const U=S.u, tr=R.tr;
+  R.uAg={labor:pay['A&G'].total,other:tr*U.agPct/100+U.agFix*ci,cc:tr*U.cc/100}; R.uAg.tot=R.uAg.labor+R.uAg.other+R.uAg.cc;
+  R.uIt={labor:pay.IT.total,other:tr*U.itPct/100+U.itKey*keys*ci}; R.uIt.tot=R.uIt.labor+R.uIt.other;
+  R.uSm={labor:pay['S&M'].total,other:tr*U.smPct/100,fr:R.roomsRev*(+U.royR + +U.mkt + +U.loy)/100+R.fb.rev*U.royF/100}; R.uSm.tot=R.uSm.labor+R.uSm.other+R.uSm.fr;
+  R.uPom={labor:pay.POM.total,other:tr*U.pomPct/100+U.pomKey*keys*ci}; R.uPom.tot=R.uPom.labor+R.uPom.other;
+  R.uUt={base:S.p.gfa*U.utM2*ci,spa:S.p.spaArea*U.utSpa*ci,var:U.utPor*sold*ci}; R.uUt.tot=R.uUt.base+R.uUt.spa+R.uUt.var;
+  R.undist=R.uAg.tot+R.uIt.tot+R.uSm.tot+R.uPom.tot+R.uUt.tot;
+  R.gop=R.deptProfit-R.undist;
+  R.feeBase=tr*U.base/100; R.feeInc=Math.max(0,R.gop-R.feeBase)*U.inc/100; R.fees=R.feeBase+R.feeInc;
+  R.ibnoie=R.gop-R.fees;
+  // Non-Operating
+  const N=S.n;
+  const rFix=N.rentKey*keys*12*ci, rVar=R.roomsRev*N.rentRooms/100+(tr-R.roomsRev)*N.rentOther/100;
+  R.rentFix=rFix;R.rentVar=rVar;
+  R.rent=N.rentMode==='none'?0:N.rentMode==='fix'?rFix:N.rentMode==='var'?rVar:Math.max(rFix,rVar);
+  R.nIncome=N.income*pi; R.nTax=tr*N.tax/100; R.nIns=tr*N.ins/100; R.nOther=tr*N.other/100;
+  R.nonop=R.rent+R.nTax+R.nIns+R.nOther-R.nIncome;
+  R.ebitda=R.ibnoie-R.nonop;
+  R.resFfe=tr*(ramp.ffe||0)/100; R.resBldg=tr*N.bldg/100; R.reserve=R.resFfe+R.resBldg;
+  R.ebitdaR=R.ebitda-R.reserve;
+  // KPIs
+  R.trevpar=avail?tr/avail:0; R.goppar=avail?R.gop/avail:0; R.gopPor=sold?R.gop/sold:0;
+  R.rentCover=R.rent?(R.ebitda+R.rent)/R.rent:0;
+  return R;
+}
+function computeAll(S,scen){const out=[];for(let y=1;y<=10;y++)out.push(computeYear(S,y,scen));return out}
+
+/* ================= Zustand & Hilfen ================= */
+function loadLS(){try{const t=localStorage.getItem(LS_KEY);if(t)return migrate(JSON.parse(t))}catch(e){}return null}
+function saveLS(){try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}}
+function migrate(o){const vIn=o.v;const d=defaults();const old=!(vIn>=2);
+  (function fill(t,s){for(const k in s){if(t[k]===undefined)t[k]=s[k];else if(s[k]&&typeof s[k]==='object'&&!Array.isArray(s[k])&&t[k]&&typeof t[k]==='object')fill(t[k],s[k])}})(o,d);
+  if(old){
+    const vr=1+(+o.vat?.rooms||10)/100;
+    ['L','M','H'].forEach(k=>o.r.rate[k]=Math.round(o.r.rate[k]/vr));
+    o.r.types.forEach(t=>t.prem=Math.round(t.prem/vr));
+    const bo=o.f.outlets.find(x=>x.meals.bf.on), dn=o.f.outlets.find(x=>x.meals.di.on);
+    if(bo)o.r.bfSplit=(+bo.meals.bf.food)+(+bo.meals.bf.bev); if(dn)o.r.hbSplit=(+dn.meals.di.food)+(+dn.meals.di.bev);
+    const so=o.m.occ||{L:25,M:30,H:10};
+    o.m.rooms.forEach(r=>{if(r.pax==null)r.pax=o.m.pax||18;if(r.rent==null)r.rent=o.m.rent||350;if(!Array.isArray(r.occ))r.occ=o.cal.map(c=>c.open?(so[c.season]||0):0)});
+    o.v=2;
+  }
+  if(!(vIn>=3)){
+    o.m.rooms.forEach(r=>{if(!Array.isArray(r.days))r.days=o.cal.map((c,i)=>c.open&&r.occ?Math.round(c.days*(o.m.dpw||5)/7*(+r.occ[i]||0)/100):0)});
+    o.v=3;
+  }
+  if(!(vIn>=4)){
+    const ddr=+o.m.ddr||69, fs=(o.m.foodShare!=null?+o.m.foodShare:75)/100;
+    o.m.pk={full:{food:Math.round(ddr*fs),bev:Math.round(ddr*(1-fs)),it:0,misc:0},half:{food:26,bev:8,it:6,misc:3}};
+    o.m.rooms.forEach(r=>{if(r.rentHalf==null)r.rentHalf=Math.round((+r.rent||0)*0.6);if(!Array.isArray(r.half))r.half=o.cal.map(()=>0)});
+    o.v=4;
+  }
+  return o}
+let S=loadLS()||defaults();
+let RES=computeAll(S);
+let step='projekt';
+const ui={unit:'EUR',dy:null,prev:null,last:null};
+const $=q=>document.querySelector(q);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function get(p){return p.split('.').reduce((o,k)=>o==null?o:o[k],S)}
+function setP(p,v){const ks=p.split('.');let o=S;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];o[ks[ks.length-1]]=v}
+const fid=p=>'f-'+p.replace(/[^a-zA-Z0-9]/g,'-');
+const NF0=new Intl.NumberFormat('de-DE',{maximumFractionDigits:0});
+const NF1=new Intl.NumberFormat('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
+const NF2=new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const e0=v=>NF0.format(Math.round(nz(v)));
+const e1=v=>NF1.format(nz(v));
+const pc=v=>NF1.format(nz(v)*100)+' %';
+const money=v=>ui.unit==='T€'?NF0.format(Math.round(nz(v)/1000)):NF0.format(Math.round(nz(v)));
+const stab=()=>RES[clamp(S.p.stab,1,10)-1];
+const yLabel=y=>`J${y}`;
+
+/* ---------- Feld-Bausteine ---------- */
+const tip=t=>t?`<span class="tip" title="${esc(t)}" aria-label="${esc(t)}">?</span>`:'';
+function NUM(p,label,unit,o={}){const v=get(p);
+  return `<label class="f"><span>${label}${tip(o.tip)}</span><div class="inp"><input id="${fid(p)}" type="number" inputmode="decimal" step="${o.step||'any'}" data-p="${p}" data-t="n"${o.nul?' data-null="1" placeholder="auto"':''}${o.rr?' data-rr="1"':''} value="${v??''}">${unit?`<em>${unit}</em>`:''}</div></label>`}
+function TXT(p,label,o={}){return `<label class="f"><span>${label}${tip(o.tip)}</span><div class="inp"><input id="${fid(p)}" type="text" data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} value="${esc(get(p))}"></div></label>`}
+function SEL(p,label,opts,o={}){const v=get(p);
+  return `<label class="f"><span>${label}${tip(o.tip)}</span><div class="inp"><select id="${fid(p)}" data-p="${p}" data-t="${o.num?'n':'s'}"${o.rr?' data-rr="1"':''}>${opts.map(([k,l])=>`<option value="${esc(k)}"${String(k)===String(v)?' selected':''}>${esc(l)}</option>`).join('')}</select></div></label>`}
+function CHK(p,label,o={}){return `<label class="chk"><input id="${fid(p)}" type="checkbox" data-p="${p}" data-t="b"${o.rr?' data-rr="1"':''}${get(p)?' checked':''}> ${label}</label>`}
+const cN=(p,o={})=>`<input id="${fid(p)}" type="number" inputmode="decimal" step="any" data-p="${p}" data-t="n"${o.rr?' data-rr="1"':''}${o.dis?' disabled':''} value="${get(p)??''}" aria-label="${esc(o.al||p)}">`;
+const cT=(p,o={})=>`<input id="${fid(p)}" type="text" data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} value="${esc(get(p))}" aria-label="${esc(o.al||'Name')}">`;
+const cS=(p,opts,o={})=>`<select id="${fid(p)}" data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} aria-label="${esc(o.al||p)}">${opts.map(([k,l])=>`<option value="${esc(k)}"${String(k)===String(get(p))?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
+const cB=(p,o={})=>`<input id="${fid(p)}" type="checkbox" data-p="${p}" data-t="b"${o.rr?' data-rr="1"':''}${get(p)?' checked':''} aria-label="${esc(o.al||p)}">`;
+const calc=(k,a='')=>`<span data-calc="${k}" data-a="${a}">${CALC[k]?CALC[k](a):''}</span>`;
+const del=(arr,i)=>`<button class="xbtn" type="button" data-act="del" data-arr="${arr}" data-i="${i}" title="Zeile entfernen" aria-label="Zeile entfernen">×</button>`;
+const add=(arr,label)=>`<button class="addbtn" type="button" data-act="add" data-arr="${arr}">+ ${label}</button>`;
+const block=(id,title,hint,body)=>`<section class="block" id="${id}"><h2>${title}</h2>${hint?`<p class="hint">${hint}</p>`:''}${body}</section>`;
+const kv=items=>`<div class="kv">${items.map(([l,v])=>`<div><small>${l}</small><strong>${v}</strong></div>`).join('')}</div>`;
+function utilPill(u){if(!(u>0))return '<span class="pill mute">–</span>';const c=u>1?'bad':u>.85?'warn':'good';return `<span class="pill ${c}">${NF0.format(u*100)} %</span>`}
+
+const TEMPL={
+  'r.types':()=>({name:'Neue Kategorie',keys:0,size:30,prem:0}),
+  'r.segs':()=>({name:'Neues Segment',L:0,M:0,H:0,disc:-10}),
+  'f.outlets':()=>({name:'Neues Outlet',type:'Restaurant',seats:40,dpw:7,meals:{bf:meal(false,0,0,0,0,1),lu:meal(false,0,0,0,0,1),af:meal(false,0,0,0,0,1),di:meal(true,20,10,35,14,1.2),bar:meal(false,0,0,0,0,1)}}),
+  'm.rooms':()=>({name:'Neuer Raum',sqm:50,cap:30,pax:15,rent:300,rentHalf:180,days:S.cal.map(c=>c.open?4:0),half:S.cal.map(c=>c.open?2:0)}),
+  'o.items':()=>({name:'Neue Abteilung',drv:'day',qty:0,price:0,amt:0,cos:0,exp:10}),
+  'st.pos':()=>{const l=S.st.pos[S.st.pos.length-1];return {dept:l?l.dept:'Rooms',pos:'Neue Position',e:1,m:0,l:0,hf:false,sal:2200,fs:'FY'}}
+};
+
+/* ================= Berechnete Anzeigen ================= */
+const CALC={
+  keys:()=>e0(keysOf(S)),
+  typeShare:i=>{const k=keysOf(S);return k?pc(S.r.types[i].keys/k):'–'},
+  avgSize:()=>{const k=keysOf(S);return k?e1(sum(S.r.types.map(t=>t.keys*t.size))/k)+' m²':'–'},
+  avgPrem:()=>e1(avgPrem(S))+' €',
+  openDays:()=>e0(sum(S.cal.map(c=>c.open?+c.days:0))),
+  openMonths:()=>e1(openMonthsOf(S)),
+  occAvg:()=>{let a=0,s=0;S.cal.forEach((c,i)=>{if(c.open){a+=c.days;s+=c.days*S.r.occ[i]}});return a?e1(s/a)+' %':'–'},
+  retail:s=>{const v=segRetail(S,s);return `<span class="${v<0?'pill bad':''}">${e1(v)} %</span>`},
+  avgDisc:s=>{const v=sum(S.r.segs.map(g=>g[s]*g.disc))/100;return e1(v)+' %'},
+  logis:s=>e0(logisNet(S,s))+' €',
+  gross:s=>e0(grossRate(S,s))+' €',
+  pkg:()=>{const v=pkgNet(S)*S.r.dof*kidMult(S);return S.r.pkg==='RO'?'keine':e1(v)+' € netto / Zimmer'},
+  miceRoom:j=>{const x=stab().mice.rooms[j];return x?e0(x.rev)+' €':'–'},
+  miceAvg:j=>{const r=S.m.rooms[j];if(!r)return '–';let a=0,v=0;S.cal.forEach((c,i)=>{if(c.open){a+=c.days*S.m.dpw/7;v+=Math.min(c.days,+r.days[i]||0)+(+r.half[i]||0)/2}});return a?e1(v/a*100)+' %':'–'},
+  miceSum:a=>{const [j,k]=a.split(':');const r=S.m.rooms[j];if(!r)return '–';return e0(sum(S.cal.map((c,i)=>c.open?Math.min(c.days,+r[k][i]||0):0)))},
+  pkRoom:a=>{const [j,k]=a.split(':');const r=S.m.rooms[j];if(!r||!(r.pax>0))return '–';return e1((k==='full'?r.rent:r.rentHalf)/r.pax)+' €'},
+  pkTot:a=>{const [j,k]=a.split(':');const r=S.m.rooms[j],P=S.m.pk[k];if(!r||!(r.pax>0))return '–';return e1((+P.food)+(+P.bev)+(+P.it)+(+P.misc)+(k==='full'?r.rent:r.rentHalf)/r.pax)+' €'},
+  pkRoomAvg:k=>{const rs=S.m.rooms.filter(r=>r.pax>0);if(!rs.length)return '–';return e1(sum(rs.map(r=>(k==='full'?r.rent:r.rentHalf)/r.pax))/rs.length)+' €'},
+  pkSum:k=>{const P=S.m.pk[k];const rs=S.m.rooms.filter(r=>r.pax>0);const ra=rs.length?sum(rs.map(r=>(k==='full'?r.rent:r.rentHalf)/r.pax))/rs.length:0;return e1((+P.food)+(+P.bev)+(+P.it)+(+P.misc)+ra)+' €'},
+  miceOver:a=>{const [j,m]=a.split(':');const r=S.m.rooms[j],c=S.cal[m];return r&&c&&(+r.days[m]||0)>c.days?`<span class="pill bad" title="Mehr Tage als Öffnungstage – gerechnet wird mit ${c.days}">max ${c.days}</span>`:''},
+  mealCov:a=>{const [i,k]=a.split(':');const M=stab().outl[i]?.meals[k];return M&&stab().days?e0(M.covers/stab().days):'–'},
+  mealUtil:a=>{const [i,k]=a.split(':');const M=stab().outl[i]?.meals[k];return utilPill(M?M.util:0)},
+  mealRev:a=>{const [i,k]=a.split(':');const M=stab().outl[i]?.meals[k];return M?e0(M.rev):'–'},
+  outRev:i=>{const O=stab().outl[i];return O?e0(O.food+O.bev)+' €':'–'},
+  slots:()=>`${spaSlots(S)} Slots / Raum / Tag · ${e0(S.s.rooms*spaSlots(S))} Behandlungen / Tag max.`,
+  therFte:()=>e1(stab().spa.therFteOpen)+' FTE (Ø Saison)',
+  oodRev:i=>{const x=stab().ood[i];return x?e0(x.rev):'–'},
+  posFte:i=>{const p=S.st.pos[i];const h=(+p.e)+(+p.m)+(+p.l);return e1(p.hf?h:h*7/S.st.workDays)},
+  posCost:i=>{const p=S.st.pos[i],R=stab();const h=(+p.e)+(+p.m)+(+p.l);const fte=p.hf?h:h*7/S.st.workDays;const mf=p.fs==='FY'?1:seasonMonths(S)/12;
+    const w=fte*p.sal*R.wi*S.st.salaries*mf;return e0(w*S.st.factor+fte*mf*S.st.meal*S.st.mealDays*R.ci)},
+  hkFte:()=>e1(stab().hk.fteOpen)+' FTE (Ø Saison)',
+  seasonAuto:()=>e1(openMonthsOf(S)),
+  rentFix:()=>e0(stab().rentFix)+' €',
+  rentVar:()=>e0(stab().rentVar)+' €',
+  scK:a=>{const [k,f]=a.split(':');const R=computeYear(S,+S.p.stab,k);if(f==='tr')return e0(R.tr/1000);if(f==='gop')return pc(R.tr?R.gop/R.tr:0);return e0(R.ebitda/1000)},
+  pr:a=>{const [y,k]=a.split(':');const R=RES[y];if(k==='occ')return pc(R.occ);if(k==='adr')return e0(R.adr);if(k==='tr')return e0(R.tr/1000);if(k==='gop')return pc(R.tr?R.gop/R.tr:0);if(k==='ebitda')return e0(R.ebitda/1000);if(k==='cal')return R.cal;return ''}
+};
+function refreshCalc(){document.querySelectorAll('[data-calc]').forEach(el=>{const f=CALC[el.dataset.calc];if(f){try{el.innerHTML=f(el.dataset.a)}catch(e){el.innerHTML=''}}})}
+
+/* ================= Schritte ================= */
+const STEPS=[['projekt','Projekt & Kalender'],['zimmer','Zimmer & Belegung'],['preise','Preise & Rooms-Kosten'],['fnb','F&B Outlets'],['mice','MICE & Bankett'],['spa','Spa & Wellness'],['ood','Weitere Abteilungen'],['personal','Personal'],['undist','Betriebskosten & Fees'],['nonop','Pacht & Non-Operating'],['projektion','Projektion & Hochlauf']];
+const SEASOPT=[['L','Nebensaison'],['M','Zwischensaison'],['H','Hauptsaison']];
+const R_=()=>stab();
+
+const VIEWS={
+projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskalender. Alle Preise geben Sie in heutigen Werten (Preisbasis) ein; das Tool indexiert sie auf die Betriebsjahre.',
+ html:block('sec-proj','Projektdaten','',`<div class="grid">${TXT('p.name','Projektname',{rr:1})}${TXT('p.location','Standort')}
+   ${SEL('p.country','Land (MwSt.-Vorgabe)',Object.entries(VATP).map(([k,v])=>[k,v.n]),{rr:1})}
+   ${SEL('p.cls','Klassifizierung',['Economy','Midscale','Upper Midscale','Upscale','Upper Upscale','Luxury'].map(x=>[x,x]))}
+   ${SEL('p.type','Betriebstyp',['Hotel','Resort','Boutique Hotel','Serviced Apartments','Hostel'].map(x=>[x,x]))}
+   ${NUM('p.gfa','Bruttogeschossfläche','m²',{tip:'Grundlage für Energie-Grundlast und Kennzahlen je m²'})}${NUM('p.spaArea','Spa-Fläche','m²',{tip:'Für den Energie-Zuschlag Spa'})}</div>`)
+ +block('sec-time','Zeitachse & Indexierung','Die Projektion umfasst 10 Betriebsjahre. Das Stabilisierungsjahr ist das erste Jahr ohne Hochlauf-Abschläge und die Referenz für das Live-Ergebnis.',
+   `<div class="grid">${NUM('p.baseYear','Preisbasis (heutige Werte)','Jahr',{step:1})}${NUM('p.openYear','Eröffnungsjahr (J1)','Jahr',{step:1})}
+   ${SEL('p.stab','Stabilisierungsjahr',[1,2,3,4,5].map(n=>[n,'J'+n]),{num:1})}
+   ${NUM('idx.rev','Preisindex Umsätze','% p.a.')}${NUM('idx.cost','Kostenindex','% p.a.')}${NUM('idx.wage','Reallohnzuwachs zusätzlich','% p.a.')}</div>`)
+ +block('sec-vat','Umsatzsteuer','Nur für die Umrechnung der Brutto-Zimmerpreise und der Frühstückspauschale. Die Sätze werden beim Landwechsel vorbelegt – bitte projektspezifisch prüfen.',
+   `<div class="grid">${NUM('vat.rooms','MwSt. Beherbergung','%')}${NUM('vat.food','MwSt. Speisen','%')}</div>`)
+ +block('sec-cal','Betriebskalender','Saison je Monat, geöffnet / geschlossen und Öffnungstage (für Teilmonate anpassen).',
+   `<div class="tw"><div class="cal">${S.cal.map((c,i)=>`<div class="mon${c.open?'':' closed'}"><div class="sw s-${c.season}"></div><b>${MONTHS[i]}</b>
+     ${cS(`cal.${i}.season`,SEASOPT,{rr:1,al:MONTHS[i]+' Saison'})}
+     <label class="chk">${cB(`cal.${i}.open`,{rr:1,al:MONTHS[i]+' geöffnet'})} offen</label>
+     ${c.open?cN(`cal.${i}.days`,{al:MONTHS[i]+' Tage'}):'<span class="muted">–</span>'}</div>`).join('')}</div></div>
+   <p class="hint" style="margin-top:12px">Öffnungstage p.a.: <b>${calc('openDays')}</b> · Betriebsmonate: <b>${calc('openMonths')}</b></p>`)}),
+
+zimmer:()=>({t:'Zimmer & Belegung',lead:'Zimmerkategorien mit Aufpreis gegenüber der Basiskategorie und die Belegung je Monat im stabilisierten Jahr.',
+ html:block('sec-types','Zimmerkategorien','Der Aufpreis (netto) wird mit der Keys-Verteilung gewichtet und auf die Rack Rate der Basiskategorie aufgeschlagen.',
+   `<div class="tw"><table class="t"><thead><tr><th>Kategorie</th><th>Keys</th><th>Anteil</th><th>Größe m²</th><th>Aufpreis € netto</th><th></th></tr></thead><tbody>
+   ${S.r.types.map((t,i)=>`<tr><td>${cT(`r.types.${i}.name`)}</td><td>${cN(`r.types.${i}.keys`,{al:'Keys'})}</td><td>${calc('typeShare',i)}</td><td>${cN(`r.types.${i}.size`,{al:'Größe'})}</td><td>${cN(`r.types.${i}.prem`,{al:'Aufpreis'})}</td><td>${del('r.types',i)}</td></tr>`).join('')}
+   </tbody><tfoot><tr><td>Total</td><td>${calc('keys')}</td><td>100 %</td><td>${calc('avgSize')}</td><td>Ø ${calc('avgPrem')}</td><td></td></tr></tfoot></table></div>${add('r.types','Kategorie')}`)
+ +block('sec-occ','Belegung je Monat','Zimmerbelegung im stabilisierten Jahr. Punkte in der Grafik nach oben oder unten ziehen (oder anklicken und Pfeiltasten nutzen) – oder die Werte in der Tabelle eingeben. Hochlauf-Abschläge definieren Sie im Schritt „Projektion“.',
+   `<div class="occwrap"><svg id="occSvg" class="occsvg" viewBox="0 0 860 235" role="group" aria-label="Belegung je Monat, Punkte verschiebbar">${occInner()}</svg></div><div class="tw"><table class="t"><thead><tr><th>Monat</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th></tr></thead><tbody>
+   <tr><td>Saison</td>${S.cal.map(c=>`<td class="muted">${c.season}</td>`).join('')}<td></td></tr>
+   <tr><td>Belegung %</td>${S.cal.map((c,i)=>`<td>${c.open?cN(`r.occ.${i}`,{al:MONTHS[i]+' Belegung'}):'<span class="muted">zu</span>'}</td>`).join('')}<td>${calc('occAvg')}</td></tr></tbody></table></div>`)
+ +block('sec-guests','Gäste','Die Gästezahl steuert F&B- und Spa-Nachfrage. Kinder konsumieren mit reduziertem Ø-Bon.',
+   `<div class="grid">${NUM('r.dof','Double Occupancy Factor','Gäste/Zi.',{tip:'Durchschnittliche Personen je belegtem Zimmer'})}${NUM('r.kids','Anteil Kinder','%')}${NUM('r.kidSpend','Konsum Kinder','% v. Erw.')}</div>`)}),
+
+preise:()=>({t:'Preise & Rooms-Kosten',lead:'Rack Rates der Basiskategorie (brutto) je Saison, Verpflegungspauschale, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
+ html:block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
+   `<div class="grid row" style="--n:6">${NUM('r.rate.L','Rack Rate Nebensaison','€ netto')}${NUM('r.rate.M','Rack Rate Zwischensaison','€ netto')}${NUM('r.rate.H','Rack Rate Hauptsaison','€ netto')}
+    ${SEL('r.pkg','Verpflegung im Zimmerpreis',[['RO','Nur Logis'],['BB','inkl. Frühstück'],['HB','inkl. Halbpension']],{rr:1})}
+    ${S.r.pkg!=='RO'?NUM('r.bfSplit','Split Frühstück netto','€ / Pers.',{tip:'Netto-Wert des Frühstücks je Person, der im Zimmerpreis enthalten ist'}):''}
+    ${S.r.pkg==='HB'?NUM('r.hbSplit','Split Abendessen netto','€ / Pers.'):''}</div>
+    <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) · Logis netto: NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto-Gegenwert: NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}</p>`)
+ +block('sec-segs','Segmentierung & Rabatte','Anteil der Room Nights je Segment und Saison. Der Rest ist Retail / Direkt zum vollen Preis.',
+   `<div class="tw"><table class="t"><thead><tr><th>Segment</th><th>NS %</th><th>ZS %</th><th>HS %</th><th>Rabatt %</th><th></th></tr></thead><tbody>
+   <tr><td class="muted">Retail / Direkt</td><td>${calc('retail','L')}</td><td>${calc('retail','M')}</td><td>${calc('retail','H')}</td><td class="muted">0</td><td></td></tr>
+   ${S.r.segs.map((g,i)=>`<tr><td>${cT(`r.segs.${i}.name`)}</td><td>${cN(`r.segs.${i}.L`,{al:'NS'})}</td><td>${cN(`r.segs.${i}.M`,{al:'ZS'})}</td><td>${cN(`r.segs.${i}.H`,{al:'HS'})}</td><td>${cN(`r.segs.${i}.disc`,{al:'Rabatt'})}</td><td>${del('r.segs',i)}</td></tr>`).join('')}
+   </tbody><tfoot><tr><td>Ø Rabatt</td><td>${calc('avgDisc','L')}</td><td>${calc('avgDisc','M')}</td><td>${calc('avgDisc','H')}</td><td></td><td></td></tr></tfoot></table></div>${add('r.segs','Segment')}`)
+ +block('sec-rexp','Rooms – Departmental Expenses','Personal kommt aus dem Stellenplan (Schritt Personal).',
+   `<div class="grid row" style="--n:6">${NUM('r.exp.comm','Kommissionen OTA / Reisebüro','% Rooms')}${NUM('r.exp.resv','Reservierungskosten','% Rooms')}
+   ${NUM('r.exp.supplies','Gästeartikel & Amenities','€ / POR')}${NUM('r.exp.laundry','Wäsche & Linen','€ / POR')}
+   ${NUM('r.exp.contract','Fremdreinigung','€ / POR',{tip:'Outsourcing Zimmerreinigung (Contract Labor); wird als Labor Cost erfasst'})}${NUM('r.exp.other','Sonstiger Rooms-Aufwand','% Rooms')}</div>`)}),
+
+fnb:()=>{const pk=S.r.pkg, bI=bfOutlet(S), dI=diOutlet(S);
+ return {t:'F&B Outlets',lead:'Umsatz je Outlet und Mahlzeitenperiode aus Hotelgästen (Capture Rate × Gäste pro Tag) und externen Gästen, mit getrenntem Food- und Beverage-Bon. Die Sitzplatz-Auslastung zeigt, ob die Nachfrage physisch Platz hat.',
+ html:`<p class="infobox">Covers pro Tag = Hotelgäste pro Tag × Capture Rate + externe Gäste × Saisonfaktor. Umsatz = Covers × (Ø Food + Ø Beverage netto) × Öffnungstage. Auslastung = Covers ÷ (Sitzplätze × Umschlag).</p>`
+ +block('sec-fext','Externe Nachfrage – Saisonfaktoren','Skaliert die externen Gäste in allen Outlets und im MICE-Geschäft je Saison.',
+   `<div class="grid">${NUM('f.ext.L','Nebensaison','%')}${NUM('f.ext.M','Zwischensaison','%')}${NUM('f.ext.H','Hauptsaison','%')}</div>`)
+ +S.f.outlets.map((o,i)=>`<div class="outlet" id="sec-outlet-${i}"><div class="outlet-head">
+   <label class="f grow"><span>Outlet</span><div class="inp">${cT(`f.outlets.${i}.name`,{al:'Outletname'})}</div></label>
+   ${SEL(`f.outlets.${i}.type`,'Typ',['Restaurant','Bar','Lounge / Café','Spa Bistro','Pool Bar','Room Service'].map(x=>[x,x]))}
+   ${NUM(`f.outlets.${i}.seats`,'Sitzplätze','Plätze')}${NUM(`f.outlets.${i}.dpw`,'Öffnungstage','Tage/Wo.')}
+   <div style="margin-left:auto;text-align:right"><small class="muted">Umsatz stabil. Jahr</small><div><b>${calc('outRev',i)}</b></div>${del('f.outlets',i)}</div></div>
+   <div class="tw"><table class="t"><thead><tr><th>Periode</th><th>aktiv</th><th>Capture Hotel %</th><th>Extern / Tag</th><th>Ø Food €</th><th>Ø Bev €</th><th>Umschlag</th><th>Covers / Tag</th><th>Peak-Auslastung</th><th>Umsatz €</th></tr></thead><tbody>
+   ${MEALS.map(([k,l])=>{const m=o.meals[k], P=`f.outlets.${i}.meals.${k}`;
+     const forced=(k==='bf'&&i===bI&&(pk==='BB'||pk==='HB'))||(k==='di'&&i===dI&&pk==='HB');
+     return `<tr${m.on?'':' class="muted"'}><td>${l}</td><td>${cB(P+'.on',{rr:1,al:l+' aktiv'})}</td>${m.on?`<td>${forced?`<span class="pill mute" title="Hotelgäste 100 % über die Pauschale, bewertet mit dem Split aus Preise & Rooms-Kosten">100 · Split ${e0(k==='bf'?S.r.bfSplit:S.r.hbSplit)} €</span>`:cN(P+'.cap',{al:'Capture'})}</td><td>${cN(P+'.ext',{al:'Extern'})}</td><td>${cN(P+'.food',{al:'Food'})}</td><td>${cN(P+'.bev',{al:'Beverage'})}</td><td>${cN(P+'.turns',{al:'Umschlag'})}</td><td>${calc('mealCov',i+':'+k)}</td><td>${calc('mealUtil',i+':'+k)}</td><td>${calc('mealRev',i+':'+k)}</td>`:'<td colspan="8"></td>'}</tr>`}).join('')}
+   </tbody></table></div></div>`).join('')+add('f.outlets','Outlet')
+ +block('sec-fother','In-Room & Minibar','',`<div class="grid">${NUM('f.minibar','Minibar / In-Room Dining','€ / POR')}</div>`)
+ +block('sec-fexp','F&B – Kosten','Wareneinsatz in % des jeweiligen Umsatzes (Food, Beverage, Minibar), übrige Kosten in % des F&B-Umsatzes. Personal aus dem Stellenplan.',
+   `<div class="grid row" style="--n:8">${NUM('f.exp.food','Wareneinsatz Food','%')}${NUM('f.exp.bev','Wareneinsatz Beverage','%')}${NUM('f.exp.other','Wareneinsatz Minibar','%')}
+   ${NUM('f.exp.china','Porzellan, Glas, Besteck','% F&B')}${NUM('f.exp.supplies','Betriebsmittel','% F&B')}${NUM('f.exp.laundry','Wäscherei','% F&B')}
+   ${NUM('f.exp.ent','Musik & Deko','€ p.a.')}${NUM('f.exp.otherPct','Sonstiges','% F&B')}</div>`)}},
+
+mice:()=>({t:'MICE & Bankett',lead:'Seminarumsatz je Raum aus Ganz- und Halbtagespauschalen: belegte Tage × Ø Teilnehmende × Pauschale. Die Pauschale setzt sich aus Food, Beverage, Raumanteil, IT und Misc zusammen; der Raumanteil ergibt sich aus der Raummiete ÷ Teilnehmende.',
+ html:block('sec-mpk','Pauschalen je Person','Netto-Split der Tagungspauschale. Der Raumanteil wird je Raum aus Miete ÷ Ø Teilnehmende berechnet (hier der Durchschnitt über alle Räume).',
+   `<div class="tw"><table class="t"><thead><tr><th>Bestandteil</th><th>Ganztagespauschale €</th><th>Halbtagespauschale €</th><th>USALI-Zuordnung</th></tr></thead><tbody>
+   <tr><td>Food</td><td>${cN('m.pk.full.food',{al:'Ganztag Food'})}</td><td>${cN('m.pk.half.food',{al:'Halbtag Food'})}</td><td class="muted">F&B · Food Revenue</td></tr>
+   <tr><td>Beverage</td><td>${cN('m.pk.full.bev',{al:'Ganztag Beverage'})}</td><td>${cN('m.pk.half.bev',{al:'Halbtag Beverage'})}</td><td class="muted">F&B · Beverage Revenue</td></tr>
+   <tr><td>Raumanteil (aus Miete)</td><td>${calc('pkRoomAvg','full')}</td><td>${calc('pkRoomAvg','half')}</td><td class="muted">F&B · Other Revenue (Room Rental)</td></tr>
+   <tr><td>IT / Technik</td><td>${cN('m.pk.full.it',{al:'Ganztag IT'})}</td><td>${cN('m.pk.half.it',{al:'Halbtag IT'})}</td><td class="muted">F&B · Other Revenue (AV / IT)</td></tr>
+   <tr><td>Misc</td><td>${cN('m.pk.full.misc',{al:'Ganztag Misc'})}</td><td>${cN('m.pk.half.misc',{al:'Halbtag Misc'})}</td><td class="muted">F&B · Other Revenue</td></tr>
+   </tbody><tfoot><tr><td>Pauschale gesamt (Ø)</td><td>${calc('pkSum','full')}</td><td>${calc('pkSum','half')}</td><td></td></tr></tfoot></table></div>
+   <div class="grid row" style="--n:4;margin-top:14px">${NUM('m.itCost','Kostenanteil IT / Technik','% IT-Umsatz',{tip:'z. B. Fremdmiete von Technik'})}${NUM('m.miscCost','Kostenanteil Misc','% Misc-Umsatz')}${NUM('m.dpw','Seminartage je Woche','Tage/Wo.',{tip:'Nur für die Auslastungsquote: verfügbare Raumtage = Öffnungstage × Seminartage ÷ 7; Halbtage zählen halb'})}</div>`)
+ +block('sec-mroom','Tagungsräume','Ø Teilnehmende sowie Miete je Ganztag (GT) bzw. Halbtag (HT); daraus ergeben sich Raumanteil und Pauschale je Person.',`<div class="tw"><table class="t"><thead><tr><th>Raum</th><th>m²</th><th title="Kapazität Pax">Kap.</th><th>Ø Pax</th><th title="Miete je Ganztag">Miete GT €</th><th title="Miete je Halbtag">Miete HT €</th><th title="Pauschale je Person Ganztag">GT / Pers.</th><th title="Pauschale je Person Halbtag">HT / Pers.</th><th>Ø Beleg.</th><th>Umsatz €</th><th></th></tr></thead><tbody>
+   ${S.m.rooms.map((r,i)=>`<tr><td>${cT(`m.rooms.${i}.name`,{rr:1})}</td><td>${cN(`m.rooms.${i}.sqm`,{al:'m²'})}</td><td>${cN(`m.rooms.${i}.cap`,{al:'Kapazität'})}</td><td>${cN(`m.rooms.${i}.pax`,{al:'Pax'})}</td><td>${cN(`m.rooms.${i}.rent`,{al:'Miete Ganztag'})}</td><td>${cN(`m.rooms.${i}.rentHalf`,{al:'Miete Halbtag'})}</td><td>${calc('pkTot',i+':full')}</td><td>${calc('pkTot',i+':half')}</td><td>${calc('miceAvg',i)}</td><td>${calc('miceRoom',i)}</td><td>${del('m.rooms',i)}</td></tr>`).join('')}</tbody></table></div>${add('m.rooms','Raum')}`)
+ +block('sec-mocc','Belegte Tage je Raum und Monat','Anzahl Ganztage und Halbtage mit Veranstaltung. Ganztage maximal die Öffnungstage des Monats; geschlossene Monate bleiben leer.',
+   S.m.rooms.length?`<div class="tw"><table class="t mocc"><thead><tr><th>Raum</th><th></th>${MONTHS.map((m,k)=>`<th>${m}<span class="ys" style="display:block;font-weight:500;text-transform:none;letter-spacing:0">${S.cal[k].open?'max '+S.cal[k].days:'zu'}</span></th>`).join('')}<th>Σ Tage</th></tr></thead><tbody>
+   ${S.m.rooms.map((r,i)=>['days','half'].map((k,x)=>`<tr${x?'':' class="mfirst"'}><td>${x?'':esc(r.name)}</td><td class="muted">${x?'Halbtag':'Ganztag'}</td>${S.cal.map((c,m)=>`<td>${c.open?cN(`m.rooms.${i}.${k}.${m}`,{al:r.name+' '+MONTHS[m]+(x?' Halbtage':' Ganztage')})+(x?'':calc('miceOver',i+':'+m)):'<span class="muted">zu</span>'}</td>`).join('')}<td><b>${calc('miceSum',i+':'+k)}</b></td></tr>`).join('')).join('')}</tbody></table></div>`:'<p class="hint">Noch kein Tagungsraum angelegt.</p>')
+ +block('sec-banq','Bankette & Hochzeiten','',`<div class="grid">${NUM('m.banq.events','Veranstaltungen','p.a.')}${NUM('m.banq.pax','Ø Gäste','Pax')}${NUM('m.banq.spend','Ø Umsatz','€ / Pax')}${NUM('m.banq.bevShare','Beverage-Anteil','%')}</div>`)}),
+
+spa:()=>({t:'Spa & Wellness',lead:'Behandlungsumsatz aus der Nachfrage von Hotel- und externen Gästen, begrenzt durch die Kapazität der Behandlungsräume. Therapeut:innen werden aus den Behandlungsstunden abgeleitet.',
+ html:`<p class="infobox">Behandlungen / Tag = Hotelgäste × Capture Rate + externe Behandlungen × Saisonfaktor – maximal Kapazität (Räume × Slots). Therapeut:innen-FTE = Behandlungsstunden ÷ produktive Stunden je FTE.</p>`
+ +block('sec-scap','Behandlungskapazität','',`<div class="grid">${NUM('s.rooms','Behandlungsräume','Räume')}${NUM('s.hours','Öffnungszeit','h / Tag')}${NUM('s.dur','Ø Behandlungsdauer','Min.')}${NUM('s.buf','Rüstzeit','Min.')}${NUM('s.dpw','Öffnungstage','Tage/Wo.')}</div>
+   <p class="hint" style="margin-top:12px">${calc('slots')}</p>`)
+ +block('sec-sdem','Nachfrage & Preis','',`<div class="grid">${NUM('s.cap','Capture Hotelgäste','% / Tag',{tip:'Anteil der anwesenden Hotelgäste, die an einem Tag eine Behandlung buchen'})}${NUM('s.ext','Externe Behandlungen','pro Tag')}${NUM('s.price','Ø Behandlungspreis','€ netto')}
+   ${NUM('s.ext_f.L','Saisonfaktor extern NS','%')}${NUM('s.ext_f.M','Saisonfaktor extern ZS','%')}${NUM('s.ext_f.H','Saisonfaktor extern HS','%')}</div>`)
+ +block('sec-sday','Day Spa, Mitgliedschaften & Retail','',`<div class="grid">${NUM('s.dayGuests','Day-Spa-Gäste','pro Tag')}${NUM('s.fee','Eintritt Day Spa','€ netto')}
+   ${NUM('s.hotelPaid','Hotelgäste mit Eintritt','% / Tag')}${NUM('s.hotelFee','Eintritt Hotelgäste','€ netto')}
+   ${NUM('s.members','Mitglieder','Anzahl')}${NUM('s.memberFee','Mitgliedsbeitrag','€ / Monat')}${NUM('s.retailGuests','Retail-Käufer:innen','pro Tag')}${NUM('s.retailSpend','Ø Retail-Umsatz','€ netto / Kauf')}${NUM('s.other','Sonstiges (Kurse, Fitness)','€ p.a.')}</div>`)
+ +block('sec-sther','Therapeut:innen','Werden automatisch in den Spa-Personalkosten erfasst, zusätzlich zu den Positionen im Stellenplan.',
+   `<div class="grid">${NUM('s.prodH','Produktive Stunden','h / Arbeitstag')}${NUM('s.weeks','Arbeitswochen','p.a.')}${NUM('s.salary','Gehalt brutto','€ / Monat')}${NUM('s.comm','Provision','% Behandl.')}</div>
+   <p class="hint" style="margin-top:12px">Bedarf stabilisiertes Jahr: <b>${calc('therFte')}</b></p>`)
+ +block('sec-sexp','Spa – Kosten','',`<div class="grid">${NUM('s.exp.product','Behandlungsprodukte','% Behandl.')}${NUM('s.exp.retail','Wareneinsatz Retail','% Retail')}${NUM('s.exp.linen','Wäsche & Linen','€ / Besuch')}${NUM('s.exp.supplies','Betriebsmittel','% Spa')}${NUM('s.exp.other','Sonstiger Spa-Aufwand','% Spa')}</div>`)}),
+
+ood:()=>({t:'Weitere Abteilungen',lead:'Other Operated Departments wie Garage, Shop oder Verleih sowie Miscellaneous Income.',
+ html:block('sec-ood','Other Operated Departments','Treiber: Menge × Preis je Öffnungstag, € je belegtem Zimmer oder ein Pauschalbetrag p.a.',
+   `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>Treiber</th><th>Menge / Tag</th><th>Preis €</th><th>Pauschal € p.a.</th><th>Wareneinsatz %</th><th>Aufwand %</th><th>Umsatz €</th><th></th></tr></thead><tbody>
+   ${S.o.items.map((it,i)=>`<tr><td>${cT(`o.items.${i}.name`)}</td><td>${cS(`o.items.${i}.drv`,[['day','je Öffnungstag'],['por','€ je POR'],['year','pauschal p.a.']],{rr:1,al:'Treiber'})}</td>
+     <td>${it.drv==='day'?cN(`o.items.${i}.qty`,{al:'Menge'}):'–'}</td><td>${it.drv!=='year'?cN(`o.items.${i}.price`,{al:'Preis'}):'–'}</td><td>${it.drv==='year'?cN(`o.items.${i}.amt`,{al:'Pauschal'}):'–'}</td>
+     <td>${cN(`o.items.${i}.cos`,{al:'Wareneinsatz'})}</td><td>${cN(`o.items.${i}.exp`,{al:'Aufwand'})}</td><td>${calc('oodRev',i)}</td><td>${del('o.items',i)}</td></tr>`).join('')}</tbody></table></div>${add('o.items','Abteilung')}`)
+ +block('sec-misc','Miscellaneous Income','Stornogebühren, Provisionen, Vermietung von Flächen an Dritte.',`<div class="grid">${NUM('o.miscPor','Sonstige Erträge','€ / POR')}${NUM('o.lease','Mieterträge (Shop, Flächen)','€ p.a.')}</div>`)}),
+
+personal:()=>({t:'Personal',lead:'Stellenplan je Abteilung mit Schichtbesetzung. Aus Köpfen pro Schicht werden FTE abgeleitet (7-Tage-Betrieb ÷ Arbeitstage), Personalkosten inklusive Lohnnebenkosten und Personalessen.',
+ html:block('sec-stp','Parameter','FY = Full Year: Ganzjahreskraft, beschäftigt über 12 Monate (Kosten = 14 Gehälter). S = Saisonkraft: nur in den Saisonmonaten beschäftigt (Kosten = 14 Gehälter × Saisonmonate ÷ 12). Saisonmonate leer = Betriebsmonate laut Kalender.',
+   `<div class="grid">${NUM('st.factor','Lohnnebenkosten-Faktor','× Brutto')}${NUM('st.salaries','Gehälter p.a.','Anzahl')}${NUM('st.workDays','Arbeitstage','Tage/Wo.')}
+   ${NUM('st.season','Saisonmonate','Monate',{nul:1,tip:'Leer lassen = automatisch aus den Betriebsmonaten'})}${NUM('st.meal','Personalessen','€ / Tag')}${NUM('st.mealDays','Personalessen-Tage','p.a.')}</div>
+   <p class="hint" style="margin-top:12px">Betriebsmonate laut Kalender: ${calc('seasonAuto')}</p>`)
+ +block('sec-hk','Zimmerreinigung automatisch','Room Attendants aus belegten Zimmern pro Tag ÷ Zimmer je Mitarbeiter:in. Alternativ Fremdreinigung unter Preise & Rooms-Kosten.',
+   `<div class="grid">${`<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('st.hkAuto','automatisch berechnen',{rr:1})}</div>`}${S.st.hkAuto?NUM('st.rpa','Zimmer je Room Attendant','Zi. / Tag')+NUM('st.hkSal','Gehalt brutto','€ / Monat'):''}</div>
+   ${S.st.hkAuto?`<p class="hint" style="margin-top:12px">Bedarf stabilisiertes Jahr: <b>${calc('hkFte')}</b></p>`:''}`)
+ +block('sec-pos','Stellenplan','Köpfe je Schicht (Früh / Mittel / Spät). „Kopf = FTE“ für Positionen ohne 7-Tage-Abdeckung (z. B. Management). Kosten = FTE × Gehalt × Gehälter × Faktor + Personalessen, im stabilisierten Jahr.',
+   `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>Position</th><th>Früh</th><th>Mittel</th><th>Spät</th><th>Kopf = FTE</th><th>Brutto € / Monat</th><th title="FY = Ganzjahreskraft (12 Monate beschäftigt), S = Saisonkraft (nur in den Saisonmonaten beschäftigt)">Ganzjahr / Saison</th><th>FTE</th><th>Kosten p.a. €</th><th></th></tr></thead><tbody>
+   ${S.st.pos.map((p,i)=>`<tr><td>${cS(`st.pos.${i}.dept`,DEPTS.map(([k])=>[k,k]),{al:'Abteilung'})}</td><td>${cT(`st.pos.${i}.pos`,{al:'Position'})}</td>
+     <td>${cN(`st.pos.${i}.e`,{al:'Früh'})}</td><td>${cN(`st.pos.${i}.m`,{al:'Mittel'})}</td><td>${cN(`st.pos.${i}.l`,{al:'Spät'})}</td><td style="text-align:center">${cB(`st.pos.${i}.hf`,{al:'Kopf = FTE'})}</td>
+     <td>${cN(`st.pos.${i}.sal`,{al:'Gehalt'})}</td><td>${cS(`st.pos.${i}.fs`,[['FY','Ganzjahr (FY)'],['S','Saison (S)']],{al:'Ganzjahr oder Saison'})}</td><td>${calc('posFte',i)}</td><td>${calc('posCost',i)}</td><td>${del('st.pos',i)}</td></tr>`).join('')}
+   </tbody></table></div>${add('st.pos','Position')}`)}),
+
+undist:()=>({t:'Betriebskosten & Fees',lead:'Undistributed Operating Expenses nach USALI sowie Management Fees. Personal je Abteilung kommt aus dem Stellenplan.',
+ html:block('sec-ag','Administrative & General','',`<div class="grid">${NUM('u.agPct','A&G Aufwand','% Umsatz')}${NUM('u.agFix','Fixkosten (Prüfung, Recht, Lizenzen)','€ p.a.')}${NUM('u.cc','Kreditkartengebühren','% Umsatz')}</div>`)
+ +block('sec-it','Information & Telecommunication Systems','',`<div class="grid">${NUM('u.itPct','IT Aufwand','% Umsatz')}${NUM('u.itKey','Software & Lizenzen','€ / Key p.a.')}</div>`)
+ +block('sec-sm','Sales & Marketing','Franchise- und Markengebühren werden nach USALI unter Sales & Marketing ausgewiesen.',`<div class="grid">${NUM('u.smPct','S&M Aufwand','% Umsatz')}${NUM('u.royR','Royalty / Franchise','% Rooms')}${NUM('u.royF','Royalty F&B','% F&B')}${NUM('u.mkt','Marketing Fee','% Rooms')}${NUM('u.loy','Loyalty','% Rooms')}</div>`)
+ +block('sec-pom','Property Operation & Maintenance','',`<div class="grid">${NUM('u.pomPct','POM Aufwand','% Umsatz')}${NUM('u.pomKey','Wartungsverträge','€ / Key p.a.')}</div>`)
+ +block('sec-ut','Utilities','Grundlast je m² Bruttogeschossfläche, Zuschlag je m² Spa (Becken, Sauna) und variabler Anteil je belegtem Zimmer. Flächen im Schritt Projekt.',
+   `<div class="grid">${NUM('u.utM2','Energie & Wasser Grundlast','€ / m² BGF')}${NUM('u.utSpa','Zuschlag Spa','€ / m² Spa')}${NUM('u.utPor','Variabler Anteil','€ / POR')}</div>`)
+ +block('sec-fees','Management Fees','Incentive Fee auf den Adjusted GOP (GOP abzüglich Base Fee).',`<div class="grid">${NUM('u.base','Base Fee','% Umsatz')}${NUM('u.inc','Incentive Fee','% AGOP')}</div>`)}),
+
+nonop:()=>({t:'Pacht & Non-Operating',lead:'Pacht, Grundsteuern, Versicherung und Rücklagen unterhalb des GOP.',
+ html:block('sec-rent','Pacht','Bei „Maximum“ gilt der höhere Wert aus Fix- und Umsatzpacht. Fixpacht wird mit dem Kostenindex wertgesichert.',
+   `<div class="grid">${SEL('n.rentMode','Pachtmodell',[['none','keine Pacht (Eigentum / Management)'],['fix','Fixpacht'],['var','Umsatzpacht'],['max','Maximum aus Fix & Umsatz']],{rr:1})}
+   ${S.n.rentMode==='fix'||S.n.rentMode==='max'?NUM('n.rentKey','Fixpacht','€ / Key / Monat'):''}
+   ${S.n.rentMode==='var'||S.n.rentMode==='max'?NUM('n.rentRooms','Umsatzpacht Rooms','% Rooms')+NUM('n.rentOther','Umsatzpacht übrige','% übriger Umsatz'):''}</div>
+   ${S.n.rentMode!=='none'?`<p class="hint" style="margin-top:12px">Stabilisiertes Jahr: Fixpacht ${calc('rentFix')} · Umsatzpacht ${calc('rentVar')}</p>`:''}`)
+ +block('sec-nonop','Non-Operating Income & Expenses','',`<div class="grid">${NUM('n.income','Non-Operating Income','€ p.a.')}${NUM('n.tax','Grundsteuer & Abgaben','% Umsatz')}${NUM('n.ins','Versicherung','% Umsatz')}${NUM('n.other','Sonstiges','% Umsatz')}</div>`)
+ +block('sec-res','Replacement Reserve','Die FF&E-Reserve je Jahr legen Sie im Schritt Projektion fest.',`<div class="grid">${NUM('n.bldg','Gebäude-Reserve','% Umsatz')}</div>`)}),
+
+projektion:()=>({t:'Projektion & Hochlauf',lead:'Abweichungen je Betriebsjahr vom stabilisierten Niveau: Belegung in Prozentpunkten, ADR und externe Nachfrage in Prozent. Dazu die FF&E-Reserve je Jahr. Indexierung aus Schritt 1.',
+ html:block('sec-proj10','10-Jahres-Hochlauf','',`<div class="tw"><table class="t"><thead><tr><th>Jahr</th><th>Kalender</th><th>Belegung Δ pp</th><th>ADR Δ %</th><th>Ext. Nachfrage Δ %</th><th>FF&E Reserve %</th><th>Belegung</th><th>ADR €</th><th>Umsatz T€</th><th>GOP %</th><th>EBITDA T€</th></tr></thead><tbody>
+   ${S.proj.rows.map((r,i)=>`<tr${i+1===+S.p.stab?' style="background:var(--key)"':''}><td>${yLabel(i+1)}${i+1===+S.p.stab?' · stabil':''}</td><td>${calc('pr',i+':cal')}</td>
+    <td>${cN(`proj.rows.${i}.occ`,{al:'Belegung'})}</td><td>${cN(`proj.rows.${i}.adr`,{al:'ADR'})}</td><td>${cN(`proj.rows.${i}.ext`,{al:'Extern'})}</td><td>${cN(`proj.rows.${i}.ffe`,{al:'FF&E'})}</td>
+    <td>${calc('pr',i+':occ')}</td><td>${calc('pr',i+':adr')}</td><td>${calc('pr',i+':tr')}</td><td>${calc('pr',i+':gop')}</td><td>${calc('pr',i+':ebitda')}</td></tr>`).join('')}</tbody></table></div>`)
+ +block('sec-scen','Szenarien Base / High / Low','Abweichungen gegenüber Base, gelten für alle Jahre zusätzlich zum Hochlauf. Das aktive Szenario wählen Sie oben in der Kopfzeile oder im Ergebnis. Externe Nachfrage wirkt auf F&B-Externe, MICE, Spa-Externe und OOD; Kosten auf Personal und indexierte Fixkosten.',
+   `<div class="tw"><table class="t"><thead><tr><th>Szenario</th><th>Belegung Δ pp</th><th>ADR Δ %</th><th>Ext. Nachfrage Δ %</th><th>Kosten Δ %</th><th>Umsatz ${yLabel(S.p.stab)} T€</th><th>GOP %</th><th>EBITDA T€</th></tr></thead><tbody>
+   <tr><td><b>Base</b></td><td class="muted">0</td><td class="muted">0</td><td class="muted">0</td><td class="muted">0</td><td>${calc('scK','Base:tr')}</td><td>${calc('scK','Base:gop')}</td><td>${calc('scK','Base:ebitda')}</td></tr>
+   ${['High','Low'].map(k=>`<tr><td><b>${k}</b></td><td>${cN(`sc.${k}.occ`,{al:k+' Belegung'})}</td><td>${cN(`sc.${k}.adr`,{al:k+' ADR'})}</td><td>${cN(`sc.${k}.ext`,{al:k+' extern'})}</td><td>${cN(`sc.${k}.cost`,{al:k+' Kosten'})}</td><td>${calc('scK',k+':tr')}</td><td>${calc('scK',k+':gop')}</td><td>${calc('scK',k+':ebitda')}</td></tr>`).join('')}
+   </tbody></table></div>`)})
+};
+
+/* ---------- Modul-Ergebnisse ---------- */
+const MODRES={
+ projekt:()=>{const R=R_();return kv([['Keys',e0(R.keys)],['Öffnungstage',e0(R.days)],['Verfügbare Zimmer',e0(R.avail)],['Stabilisiert',`${yLabel(S.p.stab)} · ${R.cal}`]])},
+ zimmer:()=>{const R=R_();return kv([['Belegung',pc(R.occ)],['Zimmer verkauft',e0(R.sold)],['Gästenächte',e0(R.guests)],['Ø Gäste / Tag',e0(R.days?R.guests/R.days:0)]])},
+ preise:()=>{const R=R_();return kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])},
+ fnb:()=>{const R=R_();const w=[];R.outl.forEach(o=>Object.entries(o.meals).forEach(([k,m])=>{if(m.util>1)w.push(`${o.name} – ${MEALS.find(x=>x[0]===k)[1]}: ${NF0.format(m.util*100)} %`)}));
+   return kv([['F&B Revenue',e0(R.fb.rev)+' €'],['Food / Beverage',`${pc(R.fb.rev?R.fb.food/R.fb.rev:0)} / ${pc(R.fb.rev?R.fb.bev/R.fb.rev:0)}`],['Covers Outlets',e0(R.fb.covers)],['F&B je Gästenacht',e1(R.guests?R.fb.rev/R.guests:0)+' €'],['Wareneinsatz',pc(R.fb.rev?R.dFb.cos/R.fb.rev:0)],['F&B Dept. Profit',pc(R.fb.rev?R.dFb.profit/R.fb.rev:0)]])
+   +(w.length?`<div class="warnbox">Nachfrage übersteigt die Sitzplatzkapazität: ${esc(w.join(' · '))}. Umschlag, Sitzplätze oder Capture Rate prüfen.</div>`:'')},
+ mice:()=>{const R=R_(),X=R.mice;return kv([['Ganztage / Halbtage',e0(X.full)+' / '+e0(X.half)],['Teilnehmertage',e0(X.del)],['MICE Umsatz',e0(X.rev)+' €'],['davon Food / Bev',e0(X.food+X.bev)+' €'],['davon Raum',e0(X.rent)+' €'],['davon IT / Misc',e0(X.it+X.misc)+' €'],['Bankette',e0(X.bq)+' €'],['Raumbelegung Ø',pc(X.util)]])},
+ spa:()=>{const R=R_(),X=R.spa;return kv([['Spa Revenue',e0(X.rev)+' €'],['Behandlungen',e0(X.t)],['Auslastung Ø',pc(X.util)],['Peak-Nachfrage',utilPill(X.peak)],['Therapeut:innen',e1(X.therFteOpen)+' FTE'],['Spa Dept. Profit',pc(X.rev?R.dSpa.profit/X.rev:0)]])
+   +(X.lost>0?`<div class="warnbox">${e0(X.lost)} Behandlungen p.a. finden keinen Slot. Mehr Räume, längere Öffnungszeit oder weniger Rüstzeit prüfen.</div>`:'')},
+ ood:()=>{const R=R_();return kv([['OOD Revenue',e0(R.oodRev)+' €'],['OOD Profit',e0(R.dOod.profit)+' €'],['Misc. Income',e0(R.misc)+' €']])},
+ personal:()=>{const R=R_();return `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>FTE Ø Saison</th><th>FTE Jahresschnitt</th><th>Kosten €</th><th>% Umsatz</th></tr></thead><tbody>
+   ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${l}</td><td>${e1(P.fte)}</td><td>${e1(P.fteY)}</td><td>${e0(P.total)}</td><td>${pc(R.tr?P.total/R.tr:0)}</td></tr>`}).join('')}</tbody>
+   <tfoot><tr><td>Total</td><td>${e1(R.fte)}</td><td>${e1(R.fteY)}</td><td>${e0(R.payTotal)}</td><td>${pc(R.tr?R.payTotal/R.tr:0)}</td></tr></tfoot></table></div>`},
+ undist:()=>{const R=R_();return kv([['Undistributed',e0(R.undist)+' €'],['in % Umsatz',pc(R.tr?R.undist/R.tr:0)],['GOP',e0(R.gop)+' €'],['GOP Marge',pc(R.tr?R.gop/R.tr:0)],['Management Fees',e0(R.fees)+' €']])},
+ nonop:()=>{const R=R_();return kv([['Pacht',e0(R.rent)+' €'],['Pacht in % Umsatz',pc(R.tr?R.rent/R.tr:0)],['EBITDA',e0(R.ebitda)+' €'],['Rent Cover',R.rent?e1(R.rentCover)+'×':'–'],['EBITDA n. Reserve',e0(R.ebitdaR)+' €']])},
+ projektion:()=>''
+};
+
+/* ================= Rendering ================= */
+function renderNav(){
+  $('#stepList').innerHTML=STEPS.map(([k,l],i)=>`<li><button type="button" data-step="${k}" class="${k===step?'on':''}"><span class="n">${i+1}</span><span>${esc(l)}</span></button></li>`).join('')
+   +`<li class="res"><button type="button" data-step="ergebnis" class="${step==='ergebnis'?'on':''}"><span class="n">∑</span><span>USALI Ergebnis</span></button></li>`;
+}
+function renderScenSeg(){const el=$('#scenSeg');if(el)el.innerHTML=SCEN.map(k=>`<button type="button" data-scen="${k}" class="${(S.scen||'Base')===k?'on':''}">${k}</button>`).join('')}
+function renderStep(keepScroll){
+  renderScenSeg();
+  const y=window.scrollY;
+  $('#app').classList.toggle('result-mode',step==='ergebnis');
+  if(step==='ergebnis'){renderResult();}
+  else{
+    const i=STEPS.findIndex(s=>s[0]===step), v=VIEWS[step]();
+    const mr=MODRES[step]();
+    $('#main').innerHTML=`<div class="stephead"><div><div class="eyebrow">Schritt ${i+1} von ${STEPS.length}</div><h1>${esc(v.t)}</h1></div></div>
+      <p class="lead">${v.lead}</p>${v.html}
+      ${mr?`<div class="modres" id="modresWrap"><h3>Modul-Ergebnis · stabilisiertes Jahr ${esc(yLabel(S.p.stab))}</h3><div id="modres">${mr}</div></div>`:''}
+      <div class="stepnav">${i>0?`<button class="btn" type="button" data-step="${STEPS[i-1][0]}">← ${esc(STEPS[i-1][1])}</button>`:'<span></span>'}
+      ${i<STEPS.length-1?`<button class="btn primary" type="button" data-step="${STEPS[i+1][0]}">Weiter: ${esc(STEPS[i+1][1])} →</button>`:`<button class="btn primary" type="button" data-step="ergebnis">Zum USALI-Ergebnis →</button>`}</div>`;
+  }
+  renderNav(); renderLive();
+  $('#projTitle').textContent=S.p.name||'P&L Tool';
+  if(keepScroll)window.scrollTo(0,y);
+}
+function renderLive(){
+  const R=stab(), P=ui.prev;
+  const d=(k)=>{if(!P||P[k]==null)return '';const v=R[k]-P[k];if(Math.abs(v)<1)return '';return `<span class="delta ${v>0?'up':'dn'}">${v>0?'+':''}${e0(v/1000)} T€</span>`};
+  $('#live').innerHTML=`<h3>Live-Ergebnis</h3><p class="yr">Szenario <b>${esc(S.scen||'Base')}</b> · stabilisiertes Jahr ${yLabel(S.p.stab)} · ${R.cal}</p>
+   <div class="lrow"><span>Belegung</span><b>${pc(R.occ)}</b></div>
+   <div class="lrow"><span>ADR netto</span><b>${e0(R.adr)} €</b></div>
+   <div class="lrow big"><span>Total Revenue</span><b>${e0(R.tr/1000)}<i>T€</i></b></div>
+   <div class="lrow"><span>Rooms</span><b>${e0(R.roomsRev/1000)}<i>T€</i></b></div>
+   <div class="lrow"><span>F&amp;B</span><b>${e0(R.fb.rev/1000)}<i>T€</i></b></div>
+   <div class="lrow"><span>Spa</span><b>${e0(R.spa.rev/1000)}<i>T€</i></b></div>
+   <div class="lrow big"><span>GOP ${d('gop')}</span><b>${e0(R.gop/1000)}<i>${pc(R.tr?R.gop/R.tr:0)}</i></b></div>
+   <div class="lrow"><span>EBITDA ${d('ebitda')}</span><b>${e0(R.ebitda/1000)}<i>${pc(R.tr?R.ebitda/R.tr:0)}</i></b></div>
+   <div class="lrow"><span>EBITDA n. Reserve</span><b>${e0(R.ebitdaR/1000)}<i>T€</i></b></div>
+   <div class="lrow"><span>Personal</span><b>${e1(R.fte)}<i>FTE · ${pc(R.tr?R.payTotal/R.tr:0)}</i></b></div>
+   <button class="btn primary" type="button" data-step="ergebnis">USALI-Ergebnis öffnen</button>`;
+}
+
+/* ================= USALI Ergebnis ================= */
+// Zeilen: [typ,label,fn(R),go,basis]  typ: hd,row,sub,tot,key,gop,stat
+function summaryRows(){
+  const G=(s,a)=>s+'|'+a;
+  return [
+   ['hd','Operating Revenue'],
+   ['row','Rooms',R=>R.roomsRev,G('preise','sec-rates'),'tr'],
+   ['row','Food & Beverage',R=>R.fb.rev,G('fnb','sec-outlet-0'),'tr'],
+   ['row','Spa',R=>R.spa.rev,G('spa','sec-sdem'),'tr'],
+   ['row','Other Operated Departments',R=>R.oodRev,G('ood','sec-ood'),'tr'],
+   ['row','Miscellaneous Income',R=>R.misc,G('ood','sec-misc'),'tr'],
+   ['tot','Total Operating Revenue',R=>R.tr,null,'tr'],
+   ['hd','Departmental Expenses'],
+   ['row','Rooms',R=>R.dRooms.exp,G('preise','sec-rexp'),'rooms'],
+   ['row','Food & Beverage',R=>R.dFb.exp,G('fnb','sec-fexp'),'fb'],
+   ['row','Spa',R=>R.dSpa.exp,G('spa','sec-sexp'),'spa'],
+   ['row','Other Operated Departments',R=>R.dOod.exp,G('ood','sec-ood'),'ood'],
+   ['tot','Total Departmental Expenses',R=>R.deptExp,null,'tr'],
+   ['key','Total Departmental Profit',R=>R.deptProfit,null,'tr'],
+   ['hd','Undistributed Operating Expenses'],
+   ['row','Administrative & General',R=>R.uAg.tot,G('undist','sec-ag'),'tr'],
+   ['row','Information & Telecommunication Systems',R=>R.uIt.tot,G('undist','sec-it'),'tr'],
+   ['row','Sales & Marketing',R=>R.uSm.tot,G('undist','sec-sm'),'tr'],
+   ['row','Property Operation & Maintenance',R=>R.uPom.tot,G('undist','sec-pom'),'tr'],
+   ['row','Utilities',R=>R.uUt.tot,G('undist','sec-ut'),'tr'],
+   ['tot','Total Undistributed Expenses',R=>R.undist,null,'tr'],
+   ['gop','Gross Operating Profit',R=>R.gop,null,'tr'],
+   ['row','Management Fees',R=>R.fees,G('undist','sec-fees'),'tr'],
+   ['key','Income before Non-Operating Income & Expenses',R=>R.ibnoie,null,'tr'],
+   ['hd','Non-Operating Income & Expenses'],
+   ['row','Income',R=>R.nIncome,G('nonop','sec-nonop'),'tr'],
+   ['row','Rent',R=>R.rent,G('nonop','sec-rent'),'tr'],
+   ['row','Property & Other Taxes',R=>R.nTax,G('nonop','sec-nonop'),'tr'],
+   ['row','Insurance',R=>R.nIns,G('nonop','sec-nonop'),'tr'],
+   ['row','Other',R=>R.nOther,G('nonop','sec-nonop'),'tr'],
+   ['tot','Total Non-Operating Income & Expenses (net)',R=>R.nonop,null,'tr'],
+   ['key','EBITDA',R=>R.ebitda,null,'tr'],
+   ['row','Replacement Reserve',R=>R.reserve,G('projektion','sec-proj10'),'tr'],
+   ['key','EBITDA less Replacement Reserve',R=>R.ebitdaR,null,'tr'],
+   ['hd','Statistics'],
+   ['stat','Keys',R=>e0(R.keys),G('zimmer','sec-types')],
+   ['stat','Available Rooms',R=>e0(R.avail),G('projekt','sec-cal')],
+   ['stat','Rooms Sold',R=>e0(R.sold),G('zimmer','sec-occ')],
+   ['stat','Occupancy',R=>pc(R.occ),G('zimmer','sec-occ')],
+   ['stat','ADR (€)',R=>e0(R.adr),G('preise','sec-rates')],
+   ['stat','RevPAR (€)',R=>e0(R.revpar),G('preise','sec-rates')],
+   ['stat','TRevPAR (€)',R=>e0(R.trevpar),null],
+   ['stat','GOPPAR (€)',R=>e0(R.goppar),null],
+   ['stat','FTE (Ø Saison)',R=>e1(R.fte),G('personal','sec-pos')],
+   ['stat','Payroll in % Revenue',R=>pc(R.tr?R.payTotal/R.tr:0),G('personal','sec-pos')]
+  ];
+}
+function baseOf(R,b){return b==='rooms'?R.roomsRev:b==='fb'?R.fb.rev:b==='spa'?R.spa.rev:b==='ood'?R.oodRev:R.tr}
+function lab(label,go){return go?`<button type="button" class="lnk" data-go="${go}" title="Zur Eingabe springen">${esc(label)}</button>`:esc(label)}
+
+const pv=(v,b)=>`<span class="pv">${b?NF1.format(v/b*100):'–'}</span>`;
+function schedule(title,revLabel,rev,rows,R){
+  const por=v=>R.sold?e1(v/R.sold):'–';
+  return `<div class="usali"><div class="usali-h"><h2>${esc(title)}</h2><small>${yLabel(ui.dy)} · ${R.cal} · ${ui.unit}</small></div><div class="tw"><table class="u"><thead><tr><th>Position</th><th>${ui.unit}<span class="pvh">% ${esc(revLabel)}</span></th><th>POR €</th></tr></thead><tbody>
+   ${rows.map(([t,l,v,go])=>t==='hd'?`<tr class="hd"><td colspan="3">${esc(l)}</td></tr>`:
+    `<tr class="${t}"><td>${lab(l,go)}</td><td class="${v<0?'neg':''}">${money(v)}${pv(v,rev)}</td><td class="pc">${por(v)}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function scheduleData(R){
+  const P=R.pay, lab2=(P)=>[['sub','Salaries & Wages',P.wages],['sub','Payroll-Related (inkl. Personalessen)',P.rel]];
+  const rooms=[['hd','Revenue'],...R.seg.map(s=>['sub',`${s.name} · ${e0(s.rn)} RN · ADR ${e0(s.rn?s.rev/s.rn:0)} €`,s.rev,'preise|sec-segs']),['tot','Rooms Revenue',R.roomsRev],
+    ['hd','Expenses'],['row','Labor Costs',R.dRooms.labor,'personal|sec-pos'],...lab2(P.Rooms),['sub','Contract Labor (Fremdreinigung)',P.Rooms.contract,'preise|sec-rexp'],
+    ['row','Commissions',R.dRooms.comm,'preise|sec-rexp'],['row','Reservations',R.dRooms.resv,'preise|sec-rexp'],['row','Guest Supplies',R.dRooms.supplies,'preise|sec-rexp'],['row','Laundry & Linen',R.dRooms.laundry,'preise|sec-rexp'],['row','Other Expenses',R.dRooms.other,'preise|sec-rexp'],
+    ['tot','Total Expenses',R.dRooms.exp],['key','Rooms Departmental Profit',R.dRooms.profit]];
+  const fb=[['hd','Revenue'],...R.outl.map((o,i)=>['sub',`${o.name} · ${e0(o.covers)} Covers`,o.food+o.bev,`fnb|sec-outlet-${i}`]),
+    ['sub',`MICE-Pauschalen · ${e0(R.mice.full)} GT / ${e0(R.mice.half)} HT`,R.mice.rev,'mice|sec-mpk'],['sub','Bankette & Hochzeiten',R.mice.bq,'mice|sec-banq'],
+    ['row','Food Revenue',R.fb.food],['row','Beverage Revenue',R.fb.bev],['row','Other Revenue (Minibar, Raum, IT, Misc)',R.fb.other,'mice|sec-mpk'],['tot','F&B Revenue',R.fb.rev],
+    ['hd','Expenses'],['row','Cost of Food',R.dFb.cosF,'fnb|sec-fexp'],['row','Cost of Beverage',R.dFb.cosB,'fnb|sec-fexp'],['row','Cost of Other Revenue',R.dFb.cosO,'mice|sec-mpk'],
+    ['row','Labor Costs',R.dFb.labor,'personal|sec-pos'],...lab2(P['F&B']),
+    ['row','China, Glass, Silver, Linen',R.dFb.china,'fnb|sec-fexp'],['row','Operating Supplies',R.dFb.supplies,'fnb|sec-fexp'],['row','Laundry',R.dFb.laundry,'fnb|sec-fexp'],['row','Music & Entertainment',R.dFb.ent,'fnb|sec-fexp'],['row','Other Expenses',R.dFb.other,'fnb|sec-fexp'],
+    ['tot','Total Expenses',R.dFb.exp],['key','F&B Departmental Profit',R.dFb.profit]];
+  const X=R.spa;
+  const spa=[['hd','Revenue'],['row',`Treatments · ${e0(X.t)} Behandl. · ${pc(X.util)} Auslastung`,X.treat,'spa|sec-sdem'],['row','Day Spa & Entrance',X.entr,'spa|sec-sday'],['row','Memberships',X.mem,'spa|sec-sday'],['row','Retail',X.retail,'spa|sec-sday'],['row','Other',X.other,'spa|sec-sday'],['tot','Spa Revenue',X.rev],
+    ['hd','Expenses'],['row','Cost of Treatments (Produkte)',R.dSpa.cosT,'spa|sec-sexp'],['row','Cost of Retail',R.dSpa.cosR,'spa|sec-sexp'],
+    ['row',`Labor Costs · ${e1(P.Spa.fte)} FTE`,R.dSpa.labor,'spa|sec-sther'],...lab2(P.Spa),['sub','Therapist Commissions',P.Spa.extra,'spa|sec-sther'],
+    ['row','Linen & Laundry',R.dSpa.linen,'spa|sec-sexp'],['row','Operating Supplies',R.dSpa.supplies,'spa|sec-sexp'],['row','Other Expenses',R.dSpa.other,'spa|sec-sexp'],
+    ['tot','Total Expenses',R.dSpa.exp],['key','Spa Departmental Profit',R.dSpa.profit]];
+  const ood=[['hd','Revenue'],...R.ood.map(x=>['sub',x.name,x.rev,'ood|sec-ood']),['tot','OOD Revenue',R.oodRev],['hd','Expenses'],['row','Cost of Sales',R.dOod.cos,'ood|sec-ood'],['row','Labor Costs',R.dOod.labor,'personal|sec-pos'],['row','Other Expenses',R.dOod.other,'ood|sec-ood'],['tot','Total Expenses',R.dOod.exp],['key','OOD Departmental Profit',R.dOod.profit]];
+  const und=[['hd','Administrative & General'],['sub','Labor Costs',R.uAg.labor,'personal|sec-pos'],['sub','Other Expenses',R.uAg.other,'undist|sec-ag'],['sub','Credit Card Commissions',R.uAg.cc,'undist|sec-ag'],['tot','Total A&G',R.uAg.tot],
+    ['hd','Information & Telecommunication'],['sub','Labor Costs',R.uIt.labor,'personal|sec-pos'],['sub','Systems & Licences',R.uIt.other,'undist|sec-it'],['tot','Total IT',R.uIt.tot],
+    ['hd','Sales & Marketing'],['sub','Labor Costs',R.uSm.labor,'personal|sec-pos'],['sub','Other Expenses',R.uSm.other,'undist|sec-sm'],['sub','Franchise & Affiliation Fees',R.uSm.fr,'undist|sec-sm'],['tot','Total S&M',R.uSm.tot],
+    ['hd','Property Operation & Maintenance'],['sub','Labor Costs',R.uPom.labor,'personal|sec-pos'],['sub','Other Expenses',R.uPom.other,'undist|sec-pom'],['tot','Total POM',R.uPom.tot],
+    ['hd','Utilities'],['sub','Grundlast BGF',R.uUt.base,'undist|sec-ut'],['sub','Spa-Zuschlag',R.uUt.spa,'undist|sec-ut'],['sub','Variabel je POR',R.uUt.var,'undist|sec-ut'],['tot','Total Utilities',R.uUt.tot],
+    ['key','Total Undistributed',R.undist]];
+  return {rooms,fb,spa,ood,und};
+}
+
+function renderResult(){
+  if(ui.dy==null)ui.dy=+S.p.stab;
+  const R=RES[ui.dy-1], rows=summaryRows();
+  const head=`<tr><th>Position</th>${RES.map((r,i)=>`<th class="${i+1===ui.dy?'dy':''}">${yLabel(i+1)}<span class="ys">${r.cal}${i+1===+S.p.stab?' · stabil':''} · ${ui.unit} | %</span></th>`).join('')}<th class="dy">POR €<span class="ys">${yLabel(ui.dy)}</span></th></tr>`;
+  const body=rows.map(([t,l,f,go,b])=>{
+    if(t==='hd')return `<tr class="hd"><td colspan="${RES.length+2}">${esc(l)}</td></tr>`;
+    if(t==='stat')return `<tr class="sub"><td>${lab(l,go)}</td>${RES.map((r,i)=>`<td class="${i+1===ui.dy?'dy':''}">${f(r)}<span class="pv"></span></td>`).join('')}<td class="dy"></td></tr>`;
+    const cls=t==='gop'?'key gop':t==='row'?'':t;
+    const v=f(R);
+    return `<tr class="${cls}"><td>${lab(l,go)}</td>${RES.map((r,i)=>{const x=f(r);return `<td class="${i+1===ui.dy?'dy ':''}${x<-0.5?'neg':''}">${money(x)}${pv(x,baseOf(r,b))}</td>`}).join('')}<td class="dy pc">${R.sold?e1(v/R.sold):'–'}</td></tr>`;
+  }).join('');
+  const D=scheduleData(R);
+  const pay=`<div class="usali"><div class="usali-h"><h2>Payroll & Staffing</h2><small>${yLabel(ui.dy)} · ${R.cal} · ${ui.unit}</small></div><div class="tw"><table class="u"><thead><tr><th>Abteilung</th><th>FTE Ø Saison</th><th>Wages</th><th>Related</th><th>Total<span class="pvh">% Revenue</span></th></tr></thead><tbody>
+    ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${lab(l,'personal|sec-pos')}</td><td>${e1(P.fte)}</td><td>${money(P.wages)}</td><td>${money(P.rel+P.contract+P.extra)}</td><td>${money(P.total)}${pv(P.total,R.tr)}</td></tr>`}).join('')}
+    <tr class="tot"><td>Total</td><td>${e1(R.fte)}</td><td>${money(sum(Object.values(R.pay).map(p=>p.wages)))}</td><td>${money(sum(Object.values(R.pay).map(p=>p.rel+p.contract+p.extra)))}</td><td>${money(R.payTotal)}${pv(R.payTotal,R.tr)}</td></tr></tbody></table></div></div>`;
+  $('#main').innerHTML=`<div class="stephead"><div><div class="eyebrow">Ergebnis · USALI 11th Edition · Szenario ${esc(S.scen||'Base')}</div><h1>${esc(S.p.name)}</h1></div></div>
+  <p class="lead">${esc(S.p.type)} · ${esc(S.p.cls)} · ${esc(S.p.location)} · ${e0(R.keys)} Keys · Eröffnung ${S.p.openYear} · Werte indexiert (Preisbasis ${S.p.baseYear}). Positionen anklicken, um zur Eingabe zu springen.</p>
+  <div class="res-toolbar noprint">
+    <div class="f"><span style="font-size:12.5px;color:var(--ink-2)">Einheit</span><div class="seg" role="group" aria-label="Einheit"><button type="button" data-unit="EUR" class="${ui.unit==='EUR'?'on':''}">EUR</button><button type="button" data-unit="T€" class="${ui.unit==='T€'?'on':''}">T€</button></div></div>
+    <label class="f"><span>Detailjahr</span><div class="inp"><select id="dySel" aria-label="Detailjahr">${RES.map((r,i)=>`<option value="${i+1}"${i+1===ui.dy?' selected':''}>${yLabel(i+1)} · ${r.cal}${i+1===+S.p.stab?' (stabil)':''}</option>`).join('')}</select></div></label>
+    <div class="f"><span style="font-size:12.5px;color:var(--ink-2)">Szenario</span><div class="seg" role="group" aria-label="Szenario">${SCEN.map(k=>`<button type="button" data-scen="${k}" class="${(S.scen||'Base')===k?'on':''}">${k}</button>`).join('')}</div></div>
+    <button class="btn primary" type="button" id="btnPdf">PDF</button>
+    <button class="btn" type="button" id="btnXlsF" title="Arbeitsmappe mit Excel-Formeln: Kostenannahmen und Treiber lassen sich in Excel ändern">Excel mit Formeln</button>
+    <button class="btn" type="button" id="btnXlsV" title="Arbeitsmappe nur mit Werten">Excel nur Werte</button>
+    <button class="btn" type="button" data-step="projekt">Zu den Eingaben</button>
+  </div>
+  <div class="kpis">
+    ${[['Total Revenue',e0(R.tr/1000)+' T€',''],['Occupancy',pc(R.occ),e0(R.sold)+' RN'],['ADR',e0(R.adr)+' €','RevPAR '+e0(R.revpar)+' €'],['GOP',e0(R.gop/1000)+' T€',pc(R.tr?R.gop/R.tr:0)+' · GOPPAR '+e0(R.goppar)+' €'],['EBITDA',e0(R.ebitda/1000)+' T€',pc(R.tr?R.ebitda/R.tr:0)],['EBITDA n. Reserve',e0(R.ebitdaR/1000)+' T€',pc(R.tr?R.ebitdaR/R.tr:0)],['FTE',e1(R.fte),'Payroll '+pc(R.tr?R.payTotal/R.tr:0)],['Rent Cover',R.rent?e1(R.rentCover)+'×':'–',R.rent?'Pacht '+e0(R.rent/1000)+' T€':'keine Pacht']]
+      .map(([a,b,c])=>`<div class="kpi"><small>${a}</small><strong>${b}</strong><span>${c}</span></div>`).join('')}
+  </div>
+  ${chartSvg()}
+  ${scenCompare()}
+  <div class="usali" id="usaliSummary"><div class="usali-h"><h2>Summary Operating Statement</h2><small>10-Jahres-Projektion · ${ui.unit} · % und POR für ${yLabel(ui.dy)}</small></div>
+    <div class="tw"><table class="u"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
+  <h2 style="font-size:15px;letter-spacing:.08em;text-transform:uppercase;margin:6px 0 12px">Departmental Schedules · ${yLabel(ui.dy)}</h2>
+  <div class="stack">${schedule('Rooms','Rooms',R.roomsRev,D.rooms,R)}${schedule('Food & Beverage','F&B',R.fb.rev,D.fb,R)}${schedule('Spa','Spa',R.spa.rev,D.spa,R)}
+   ${schedule('Other Operated Departments','OOD',R.oodRev,D.ood,R)}${schedule('Undistributed Operating Expenses','Revenue',R.tr,D.und,R)}</div>
+  ${pay}
+  <p class="note">Gliederung nach Uniform System of Accounts for the Lodging Industry (USALI), 11. Ausgabe. Franchise- und Markengebühren unter Sales & Marketing, Kreditkartengebühren unter A&G, Personalessen als Payroll-Related Expense der jeweiligen Abteilung. Frühstücks- bzw. Halbpensionsanteil im Zimmerpreis wird als F&B-Umsatz ausgewiesen.</p>`;
+}
+
+function scenCompare(){
+  const dy=ui.dy||+S.p.stab, rs=SCEN.map(k=>[k,computeYear(S,dy,k)]);
+  const rows=[['Occupancy',R=>pc(R.occ)],['ADR (€)',R=>e0(R.adr)],['Total Revenue',R=>money(R.tr)],['GOP',R=>money(R.gop)],['GOP %',R=>pc(R.tr?R.gop/R.tr:0)],['EBITDA',R=>money(R.ebitda)],['EBITDA less Reserve',R=>money(R.ebitdaR)]];
+  return `<div class="usali"><div class="usali-h"><h2>Szenario-Vergleich</h2><small>${yLabel(dy)} · ${RES[dy-1].cal} · ${ui.unit} · Parameter unter <button type="button" class="lnk" data-go="projektion|sec-scen">Projektion</button></small></div>
+   <div class="tw"><table class="u"><thead><tr><th>Kennzahl</th>${rs.map(([k])=>`<th class="${k===(S.scen||'Base')?'dy':''}">${k}</th>`).join('')}</tr></thead><tbody>
+   ${rows.map(([l,f])=>`<tr><td>${l}</td>${rs.map(([k,R])=>`<td class="${k===(S.scen||'Base')?'dy':''}">${f(R)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+}
+function chartSvg(){
+  const W=900,H=190,pl=48,pr=12,pt=16,pb=30;
+  const mx=Math.max(1,...RES.map(r=>r.tr));const mn=Math.min(0,...RES.map(r=>r.ebitdaR));
+  const sc=v=>pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+  const bw=(W-pl-pr)/RES.length;
+  const raw=mx/5,mag=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,2.5,5,10].map(k=>k*mag).find(k=>k>=raw);
+  let g='';for(let v=0;v<=mx;v+=step){g+=`<line x1="${pl}" x2="${W-pr}" y1="${sc(v)}" y2="${sc(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${sc(v)+4}" text-anchor="end" font-size="10" fill="var(--ink-3)">${new Intl.NumberFormat('de-DE',{maximumFractionDigits:1}).format(v/1e6)}${v?' Mio':''}</text>`}
+  const bars=RES.map((r,i)=>{const x=pl+i*bw+bw*.18,w=bw*.64;return `<rect x="${x}" y="${sc(r.tr)}" width="${w}" height="${Math.max(0,sc(0)-sc(r.tr))}" fill="${i+1===ui.dy?'var(--terra)':'var(--surface-2)'}" stroke="var(--line-2)" stroke-width=".5"><title>${r.cal}: Umsatz ${e0(r.tr)} €</title></rect><text x="${x+w/2}" y="${H-10}" text-anchor="middle" font-size="10" fill="var(--ink-2)">${r.cal}</text>`}).join('');
+  const line=(k,c,dash)=>`<polyline fill="none" stroke="${c}" stroke-width="2" ${dash?'stroke-dasharray="4 3"':''} points="${RES.map((r,i)=>`${pl+i*bw+bw/2},${sc(r[k])}`).join(' ')}"/>`+RES.map((r,i)=>`<circle cx="${pl+i*bw+bw/2}" cy="${sc(r[k])}" r="${i+1===ui.dy?4:2.5}" fill="${c}"><title>${r.cal}: ${k==='gop'?'GOP':'EBITDA n. Reserve'} ${e0(r[k])} €</title></circle>`).join('');
+  return `<div class="usali"><div class="usali-h"><h2>Umsatz, GOP & EBITDA</h2><small><span style="color:var(--num)">■</span> Total Revenue · <span style="color:var(--accent)">●</span> GOP · <span style="color:var(--ink-2)">- -</span> EBITDA n. Reserve (EUR)</small></div>
+   <div class="tw" style="padding:6px 10px"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Umsatz, GOP und EBITDA über 10 Jahre">${g}${bars}${line('gop','var(--accent)')}${line('ebitdaR','var(--ink-2)',1)}</svg></div></div>`;
+}
+
+/* ================= Belegungsgrafik (ziehbar) ================= */
+const OC={W:860,H:235,pl:44,pr:14,pt:26,pb:40};
+const ocY=v=>OC.pt+(OC.H-OC.pt-OC.pb)*(1-v/100);
+function occInner(){
+  const {W,H,pl,pr,pb}=OC, bw=(W-pl-pr)/12; let g='';
+  [0,25,50,75,100].forEach(v=>{g+=`<line x1="${pl}" x2="${W-pr}" y1="${ocY(v)}" y2="${ocY(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${ocY(v)+4}" text-anchor="end" font-size="12.5" fill="var(--ink-3)">${v} %</text>`});
+  const pts=[];
+  S.cal.forEach((c,m)=>{
+    const x=pl+m*bw, cx=x+bw/2;
+    g+=`<rect x="${x+2}" y="${H-pb+8}" width="${bw-4}" height="4" rx="2" class="s-${c.season}"><title>${SEAS[c.season]}</title></rect>`;
+    g+=`<text x="${cx}" y="${H-pb+28}" text-anchor="middle" font-size="13.5" fill="var(--ink-2)">${MONTHS[m]}</text>`;
+    if(!c.open){g+=`<text x="${cx}" y="${ocY(8)}" text-anchor="middle" font-size="12.5" fill="var(--ink-3)">zu</text>`;return}
+    const v=+S.r.occ[m]||0, y=ocY(v);
+    g+=`<rect x="${x+bw*.2}" y="${y}" width="${bw*.6}" height="${Math.max(0,ocY(0)-y)}" fill="var(--terra)" fill-opacity=".28"/>`;
+    pts.push([cx,y,m,v]);
+  });
+  for(let i=1;i<pts.length;i++){if(pts[i][2]-pts[i-1][2]===1)g+=`<line x1="${pts[i-1][0]}" y1="${pts[i-1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}" stroke="var(--terra)" stroke-width="2"/>`}
+  pts.forEach(([cx,y,m,v])=>{
+    g+=`<rect x="${cx-bw/2}" y="${OC.pt-10}" width="${bw}" height="${ocY(0)-OC.pt+20}" fill="transparent" data-om="${m}" style="cursor:ns-resize"/>`;
+    g+=`<text x="${cx}" y="${y-14}" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--num)" pointer-events="none">${NF0.format(v)} %</text>`;
+    g+=`<circle cx="${cx}" cy="${y}" r="8" fill="var(--surface)" stroke="var(--terra)" stroke-width="2.5" data-om="${m}" tabindex="0" role="slider" aria-label="Belegung ${MONTHS[m]}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(v)}" class="ocpt"/>`;
+  });
+  return g;
+}
+let drag=null, dragRaf=0;
+function setOcc(m,v){v=Math.round(clamp(v,0,100));if(S.r.occ[m]===v)return;S.r.occ[m]=v;
+  const inp=document.getElementById(fid('r.occ.'+m)); if(inp)inp.value=v;
+  const sv=$('#occSvg'); if(sv)sv.innerHTML=occInner();
+  if(!dragRaf)dragRaf=requestAnimationFrame(()=>{dragRaf=0;recalc()});}
+function ocVal(e,sv){const r=sv.getBoundingClientRect();const y=(e.clientY-r.top)*OC.H/r.height;return (1-(y-OC.pt)/(OC.H-OC.pt-OC.pb))*100}
+document.addEventListener('pointerdown',e=>{const t=e.target.closest&&e.target.closest('[data-om]');const sv=t&&t.closest('#occSvg');if(!sv)return;
+  e.preventDefault();ui.prev=stab();drag={m:+t.dataset.om};sv.setPointerCapture(e.pointerId);setOcc(drag.m,ocVal(e,sv))});
+document.addEventListener('pointermove',e=>{if(!drag)return;const sv=$('#occSvg');if(sv)setOcc(drag.m,ocVal(e,sv))});
+document.addEventListener('pointerup',()=>{if(drag){drag=null;recalc()}});
+document.addEventListener('pointercancel',()=>{drag=null});
+document.addEventListener('keydown',e=>{const t=e.target;if(!(t.classList&&t.classList.contains('ocpt')))return;
+  const d=e.key==='ArrowUp'?1:e.key==='ArrowDown'?-1:0;if(!d)return;e.preventDefault();const m=+t.dataset.om;ui.prev=stab();
+  setOcc(m,(+S.r.occ[m]||0)+d*(e.shiftKey?5:1));const n=document.querySelector(`#occSvg circle[data-om="${m}"]`);if(n)n.focus()});
+
+/* ================= Interaktion ================= */
+function recalc(){
+  RES=computeAll(S); saveLS();
+  refreshCalc(); renderLive();
+  const m=$('#modres'); if(m&&MODRES[step]) m.innerHTML=MODRES[step]();
+  const oc=$('#occSvg'); if(oc&&!drag) oc.innerHTML=occInner();
+  $('#projTitle').textContent=S.p.name||'P&L Tool';
+}
+function applyInput(el,isChange){
+  const p=el.dataset.p,t=el.dataset.t;let v;
+  if(t==='b')v=el.checked;
+  else if(t==='n'){if(el.value===''){if(!isChange)return;v=el.dataset.null?null:0}else{v=parseFloat(el.value);if(!isFinite(v))return}}
+  else v=el.value;
+  if(!ui.prev)ui.prev=stab(); setP(p,v);
+  if(p==='p.country'){const vp=VATP[v];if(vp){S.vat.rooms=vp.rooms;S.vat.food=vp.food}}
+  if(p==='p.stab'){ui.dy=null}
+  recalc();
+  if(el.dataset.rr&&isChange)renderStep(true);
+}
+document.addEventListener('focusin',e=>{if(e.target.closest&&e.target.closest('[data-p]'))ui.prev=stab()});
+document.addEventListener('input',e=>{const el=e.target.closest('[data-p]');if(el&&el.type!=='checkbox'&&el.tagName!=='SELECT')applyInput(el,false)});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-p]');if(el)applyInput(el,true);
+  if(e.target.id==='dySel'){ui.dy=+e.target.value;renderResult()}
+  if(e.target.id==='fileIn')importFile(e.target)});
+function goto(s,anchor){
+  step=s;renderStep(false);
+  requestAnimationFrame(()=>{const el=anchor&&document.getElementById(anchor);
+    if(el){el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
+      const inp=el.querySelector('input,select');if(inp)setTimeout(()=>inp.focus({preventScroll:true}),350)}
+    else window.scrollTo(0,0)});
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.step){goto(b.dataset.step,null);return}
+  if(b.dataset.go){const [s,a]=b.dataset.go.split('|');goto(s,a);return}
+  if(b.dataset.unit){ui.unit=b.dataset.unit;renderResult();return}
+  if(b.dataset.scen){ui.prev=stab();S.scen=b.dataset.scen;RES=computeAll(S);saveLS();renderStep(true);renderScenSeg();toast('Szenario '+S.scen);return}
+  if(b.id==='btnXlsF'||b.id==='btnXlsV'){makeXlsx(b.id==='btnXlsF');return}
+  if(b.dataset.act==='add'){const arr=get(b.dataset.arr);arr.push(TEMPL[b.dataset.arr]());RES=computeAll(S);saveLS();renderStep(true);return}
+  if(b.dataset.act==='del'){const arr=get(b.dataset.arr);if(b.dataset.arr==='r.types'&&arr.length<=1){toast('Mindestens eine Zimmerkategorie ist nötig.');return}
+    arr.splice(+b.dataset.i,1);RES=computeAll(S);saveLS();renderStep(true);return}
+  if(b.id==='btnPdf'||b.id==='btnPdfTop'){makePdf();return}
+  if(b.id==='btnSave'){saveFile(fileBase()+'_Projekt.json',JSON.stringify(S,null,1),'application/json');return}
+  if(b.id==='btnLoad'){$('#fileIn').value='';$('#fileIn').click();return}
+  if(b.id==='btnReset'){showResetBar();return}
+  if(b.id==='rsEx'){S=defaults();afterLoad('Beispielprojekt geladen');return}
+  if(b.id==='rsEmpty'){S=emptyProject();afterLoad('Leeres Projekt angelegt');return}
+  if(b.id==='rsNo'){$('#resetBar')?.remove();return}
+});
+function showResetBar(){if($('#resetBar'))return;const d=document.createElement('div');d.id='resetBar';d.className='confirm';
+  d.innerHTML=`<span>Aktuelle Eingaben ersetzen? Sichern Sie das Projekt vorher, wenn Sie es behalten möchten.</span><button class="btn" type="button" id="rsEx">Beispielprojekt laden</button><button class="btn" type="button" id="rsEmpty">Leeres Projekt</button><button class="btn" type="button" id="rsNo">Abbrechen</button>`;
+  $('#main').prepend(d);window.scrollTo(0,0)}
+function emptyProject(){const d=defaults();d.p.name='Neues Projekt';d.p.location='';d.r.types=[{name:'Doppelzimmer',keys:50,size:28,prem:0}];d.r.segs=[];
+  d.f.outlets=[d.f.outlets[0]];d.m.rooms=[];d.m.banq.events=0;d.s.rooms=0;d.s.dayGuests=0;d.s.members=0;d.s.retailGuests=0;d.s.other=0;d.s.ext=0;d.o.items=[];d.p.spaArea=0;
+  d.st.pos=d.st.pos.filter(p=>/Manager|Rezeption|Küchenchef|Service|General/.test(p.pos));return d}
+function afterLoad(msg){S=migrate(S);ui.dy=null;ui.prev=null;RES=computeAll(S);saveLS();step='projekt';renderStep(false);window.scrollTo(0,0);toast(msg)}
+function importFile(inp){const f=inp.files&&inp.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||!o.p||!o.r)throw 0;S=o;afterLoad('Projekt geladen: '+(o.p.name||''))}catch(e){toast('Die Datei ist kein gültiges P&L-Projekt (JSON).')}};rd.readAsText(f)}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
+const fileBase=()=>(S.p.name||'Projekt').replace(/[^\wÄÖÜäöüß\- ]+/g,'').trim().replace(/\s+/g,'_').slice(0,60)||'Projekt';
+
+/* ---------- Dateien speichern ---------- */
+const DLp=(async()=>{try{if(window.claude&&typeof window.claude.use==='function')return await window.claude.use('downloads')}catch(e){}return null})();
+async function saveFile(name,data,mime){
+  const DL=await DLp;
+  if(DL){try{await DL.save({filename:name,data});toast('Gespeichert: '+name)}catch(e){if(e&&e.code==='declined')toast('Speichern abgebrochen');else if(e&&e.code==='rate_limited')toast('Bitte kurz warten und erneut versuchen');else toast('Speichern hier nicht möglich ('+((e&&e.code)||'Fehler')+')')}return}
+  const blob=data instanceof Blob?data:new Blob([data],{type:mime});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Download gestartet: '+name);
+}
+
+/* ================= PDF-Export (USALI) ================= */
+async function logoPng(){
+  try{
+    const paths=document.querySelector('.brand svg').innerHTML;
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="805 346 1890 308" width="1134" height="185"><g fill="#ffffff">${paths}</g></svg>`;
+    const img=new Image(); img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    await img.decode();
+    const c=document.createElement('canvas');c.width=1134;c.height=185;c.getContext('2d').drawImage(img,0,0);
+    return c.toDataURL('image/png');
+  }catch(e){return null}
+}
+const pdfTxt=s=>String(s??'').replace(/€/g,'EUR').replace(/[–—]/g,'-').replace(/[^\x00-\xFF]/g,'');
+async function makePdf(){
+  const J=window.jspdf;
+  if(!J||!J.jsPDF){toast('Die PDF-Bibliothek ist nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.');return}
+  toast('PDF wird erstellt …');
+  const doc=new J.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  if(typeof doc.autoTable!=='function'){toast('Die Tabellen-Erweiterung für PDF fehlt.');return}
+  const W=297,M=12, dy=ui.dy||+S.p.stab, R=RES[dy-1], unit=ui.unit, uTxt=unit==='T€'?'TEUR':'EUR';
+  const logo=await logoPng();
+  const today=new Date().toLocaleDateString('de-AT');
+  const OLIVE=[119,112,74],CHAR=[46,44,45],TERRA=[154,118,89],LINE=[226,223,218],KEY=[240,239,233],DY=[247,240,234],HEAD=[238,236,232];
+  const header=(title,sub)=>{
+    doc.setFillColor(...OLIVE);doc.rect(0,0,W,20,'F');
+    if(logo)doc.addImage(logo,'PNG',M,6.8,40,6.5);
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(pdfTxt(title).toUpperCase(),W-M,9.5,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(pdfTxt(sub),W-M,15,{align:'right'});
+    doc.setTextColor(...CHAR);
+  };
+  const mon=v=>pdfTxt(money(v));
+  const baseStyles={font:'helvetica',fontSize:6.6,cellPadding:{top:.7,bottom:.7,left:1.4,right:1.4},textColor:CHAR,lineColor:LINE,lineWidth:{bottom:.1},halign:'right'};
+  const headStyles={fillColor:HEAD,textColor:CHAR,fontStyle:'bold',fontSize:6.6,halign:'right'};
+  const styleRow=(data,type)=>{
+    if(data.section!=='body')return;
+    const t=type[data.row.index];
+    if(t==='hd'){data.cell.styles.textColor=TERRA;data.cell.styles.fontStyle='bold';data.cell.styles.fontSize=6.4}
+    if(t==='key'||t==='gop'){data.cell.styles.fillColor=KEY;data.cell.styles.fontStyle='bold'}
+    if(t==='tot'){data.cell.styles.fontStyle='bold'}
+    if(t==='sub'||t==='stat'){data.cell.styles.textColor=[95,90,92]}
+  };
+
+  /* Seite 1: Summary */
+  header('Summary Operating Statement',`${S.p.name} · Szenario ${S.scen||'Base'} · ${S.p.location} · ${R.keys} Keys · Eröffnung ${S.p.openYear} · Stand ${today}`);
+  doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+  const kp=[['Total Revenue',e0(R.tr/1000)+' TEUR'],['Occupancy',pc(R.occ)],['ADR',e0(R.adr)+' EUR'],['RevPAR',e0(R.revpar)+' EUR'],['GOP',e0(R.gop/1000)+' TEUR / '+pc(R.tr?R.gop/R.tr:0)],['EBITDA',e0(R.ebitda/1000)+' TEUR / '+pc(R.tr?R.ebitda/R.tr:0)],['FTE',e1(R.fte)]];
+  let x=M;doc.setTextColor(...TERRA);doc.setFont('helvetica','bold');doc.text(pdfTxt(`KENNZAHLEN ${yLabel(dy)} (${R.cal})${dy===+S.p.stab?' · STABILISIERT':''}`),M,26);
+  doc.setTextColor(...CHAR);
+  kp.forEach(([a,b])=>{doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);doc.text(pdfTxt(a.toUpperCase()),x,31);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TERRA);doc.text(pdfTxt(b),x,35.5);x+=39});
+  doc.setTextColor(...CHAR);
+  const rows=summaryRows().filter(r=>!(r[0]==='stat'&&/^(Keys|Available Rooms)$/.test(r[1])));const types=[];const body=[];
+  const pcs=(v,bv)=>bv?NF1.format(v/bv*100):'-';
+  rows.forEach(([t,l,f,go,b])=>{
+    types.push(t);
+    if(t==='hd'){body.push([{content:pdfTxt(l.toUpperCase()),colSpan:2*RES.length+2,styles:{halign:'left'}}]);return}
+    if(t==='stat'){body.push([pdfTxt(l),...RES.flatMap(r=>[pdfTxt(f(r)),'']),'']);return}
+    const v=f(R);
+    body.push([pdfTxt(l),...RES.flatMap(r=>[mon(f(r)),pcs(f(r),baseOf(r,b))]),R.sold?pdfTxt(e1(v/R.sold)):'-']);
+  });
+  const cs={0:{halign:'left',cellWidth:50}};RES.forEach((r,i)=>{cs[1+2*i]={cellWidth:13.6};cs[2+2*i]={cellWidth:7.6}});cs[1+2*RES.length]={cellWidth:11};
+  doc.autoTable({startY:38,margin:{left:M,right:M,bottom:14,top:26},theme:'plain',styles:{...baseStyles,fontSize:6,cellPadding:{top:.35,bottom:.35,left:.8,right:.8}},headStyles,showHead:'everyPage',
+    didDrawPage:d=>{if(d.pageNumber>1)header('Summary Operating Statement (Fortsetzung)',`${S.p.name} · ${uTxt}`)},
+    head:[[`Position (${uTxt} | %)`,...RES.map((r,i)=>({content:`${yLabel(i+1)} ${r.cal}`,colSpan:2,styles:{halign:'center'}})),`POR ${yLabel(dy)}`]],
+    body,columnStyles:cs,
+    didParseCell:d=>{styleRow(d,types);if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left';
+      const c=d.column.index,t=types[d.row.index];
+      if(d.section==='body'&&c>0&&c<=2*RES.length&&c%2===0){d.cell.styles.fontSize=4.9;d.cell.styles.textColor=[140,135,137];d.cell.styles.fontStyle='normal';d.cell.styles.cellPadding={top:.55,bottom:.35,left:.2,right:.8}}
+      if(d.section==='body'&&(c===2*dy-1||c===2*dy||c===2*RES.length+1)&&t!=='key'&&t!=='gop'&&t!=='hd')d.cell.styles.fillColor=DY}});
+
+  /* Seite 2+3: Departmental Schedules */
+  const D=scheduleData(R);
+  const sub=`${S.p.name} · Szenario ${S.scen||'Base'} · ${yLabel(dy)} ${R.cal} · ${uTxt}`;
+  const TW=W-2*M;
+  const sched=(title,rev,revLabel,rowsS)=>{
+    doc.addPage();header('Departmental Schedule · '+title,sub);
+    const ty=[],bd=[];
+    rowsS.forEach(([t,l,v])=>{ty.push(t);if(t==='hd'){bd.push([{content:pdfTxt(l.toUpperCase()),colSpan:4,styles:{halign:'left'}}]);return}
+      bd.push([pdfTxt(l),mon(v),rev?pdfTxt(pc(v/rev)):'-',R.sold?pdfTxt(e1(v/R.sold)):'-'])});
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...CHAR);doc.text(pdfTxt(title.toUpperCase()),M,29);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(120,115,117);
+    doc.text(pdfTxt(`${revLabel}: ${e0(rev)} EUR · ${yLabel(dy)} ${R.cal} · % bezogen auf ${revLabel} · POR = je verkauftem Zimmer`),M,34);
+    doc.autoTable({startY:38,margin:{left:M,right:M,bottom:14,top:26},tableWidth:TW,theme:'plain',
+      styles:{...baseStyles,fontSize:8,cellPadding:{top:1,bottom:1,left:2,right:2}},headStyles:{...headStyles,fontSize:7.8},showHead:'everyPage',
+      head:[['Position',uTxt,'%','POR (EUR)']],body:bd,columnStyles:{0:{halign:'left',cellWidth:TW-120},1:{cellWidth:45},2:{cellWidth:35},3:{cellWidth:40}},
+      didParseCell:d=>{styleRow(d,ty);if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left'},
+      didDrawPage:d=>{if(d.pageNumber>1)header('Departmental Schedule · '+title+' (Fortsetzung)',sub)}});
+  };
+  sched('Rooms',R.roomsRev,'Rooms Revenue',D.rooms);
+  sched('Food & Beverage',R.fb.rev,'F&B Revenue',D.fb);
+  sched('Spa',R.spa.rev,'Spa Revenue',D.spa);
+  sched('Other Operated Departments',R.oodRev,'OOD Revenue',D.ood);
+  sched('Undistributed Operating Expenses',R.tr,'Total Revenue',D.und);
+
+  /* Seite 4: Personal & Annahmen */
+  doc.addPage();header('Payroll & Annahmen',sub);
+  doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.text('PAYROLL & STAFFING',M,28);
+  doc.autoTable({startY:30,margin:{left:M,right:W-M-131},tableWidth:131,theme:'plain',styles:baseStyles,headStyles,
+    head:[['Abteilung','FTE','Wages','Related','Total','% Rev.']],
+    body:DEPTS.map(([k,l])=>{const P=R.pay[k];return [l,e1(P.fte),mon(P.wages),mon(P.rel+P.contract+P.extra),mon(P.total),pdfTxt(pc(R.tr?P.total/R.tr:0))]})
+      .concat([['Total',e1(R.fte),mon(sum(Object.values(R.pay).map(p=>p.wages))),mon(sum(Object.values(R.pay).map(p=>p.rel+p.contract+p.extra))),mon(R.payTotal),pdfTxt(pc(R.tr?R.payTotal/R.tr:0))]]),
+    columnStyles:{0:{halign:'left',cellWidth:50}},didParseCell:d=>{if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left';if(d.section==='body'&&d.row.index===DEPTS.length){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=KEY}}});
+  const A=[
+    ['Projekt',`${S.p.name}, ${S.p.location} (${VATP[S.p.country]?.n||''})`],['Typ / Klassifizierung',`${S.p.type} · ${S.p.cls}`],
+    ['Keys / Flächen',`${keysOf(S)} Keys · BGF ${e0(S.p.gfa)} m² · Spa ${e0(S.p.spaArea)} m²`],
+    ['Zeitachse',`Preisbasis ${S.p.baseYear} · Eröffnung ${S.p.openYear} · stabilisiert ${yLabel(S.p.stab)}`],
+    ['Indexierung',`Umsatz ${e1(S.idx.rev)} % · Kosten ${e1(S.idx.cost)} % · Reallohn +${e1(S.idx.wage)} % p.a.`],
+    ['Betrieb',`${e0(sum(S.cal.map(c=>c.open?+c.days:0)))} Öffnungstage · Ø Belegung stabil ${pc(RES[S.p.stab-1].occ)}`],
+    ['Rack Rates netto',`NS ${e0(S.r.rate.L)} / ZS ${e0(S.r.rate.M)} / HS ${e0(S.r.rate.H)} € · ${({RO:'nur Logis',BB:'inkl. Frühstück',HB:'inkl. Halbpension'})[S.r.pkg]}${S.r.pkg!=='RO'?` · Split Frühstück ${e1(S.r.bfSplit)} €/Pers.`:''}${S.r.pkg==='HB'?` · Abendessen ${e1(S.r.hbSplit)} €/Pers.`:''}`],
+    ['F&B',S.f.outlets.map(o=>`${o.name} (${o.seats} Pl.)`).join(', ')+` · Wareneinsatz F ${e1(S.f.exp.food)} % / B ${e1(S.f.exp.bev)} %`],
+    ['MICE',`${S.m.rooms.length} Räume · Ganztag F ${e0(S.m.pk.full.food)} / B ${e0(S.m.pk.full.bev)} / IT ${e0(S.m.pk.full.it)} / Misc ${e0(S.m.pk.full.misc)} € + Raum · Halbtag F ${e0(S.m.pk.half.food)} / B ${e0(S.m.pk.half.bev)} / IT ${e0(S.m.pk.half.it)} / Misc ${e0(S.m.pk.half.misc)} € + Raum · Ø Raumbelegung ${pc(R.mice.util)} · ${e0(S.m.banq.events)} Bankette p.a.`],
+    ['Spa',`${S.s.rooms} Behandlungsräume · Ø ${e0(S.s.price)} € · Capture ${e1(S.s.cap)} % · ${S.s.members} Mitglieder`],
+    ['Personal',`Faktor ${NF2.format(S.st.factor)} · ${S.st.salaries} Gehälter · Saisonmonate ${e1(seasonMonths(S))}`],
+    ['Management Fees',`Base ${e1(S.u.base)} % Umsatz · Incentive ${e1(S.u.inc)} % AGOP`],
+    ['Pacht',({none:'keine',fix:`Fix ${e0(S.n.rentKey)} € / Key / Monat`,var:`Umsatz ${e1(S.n.rentRooms)} % Rooms / ${e1(S.n.rentOther)} % übrige`,max:`Max. aus Fix ${e0(S.n.rentKey)} € / Key / Monat und ${e1(S.n.rentRooms)} % / ${e1(S.n.rentOther)} %`})[S.n.rentMode]],
+    ['FF&E Reserve',S.proj.rows.map((r,i)=>`${yLabel(i+1)} ${e1(r.ffe)} %`).join(' · ')]
+  ];
+  doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.text('WESENTLICHE ANNAHMEN',W-M-131,28);
+  doc.autoTable({startY:30,margin:{left:W-M-131,right:M},tableWidth:131,theme:'plain',styles:{...baseStyles,halign:'left'},
+    body:A.map(([a,b])=>[pdfTxt(a),pdfTxt(b)]),columnStyles:{0:{cellWidth:32,fontStyle:'bold'}}});
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
+  doc.text(pdfTxt('Gliederung nach USALI 11th Edition. Alle Werte in Nominalwerten der jeweiligen Betriebsjahre. Modellrechnung, keine Gewähr für den Eintritt der Annahmen.'),M,Math.max(doc.lastAutoTable.finalY,110)+10);
+
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(155,149,153);doc.setLineWidth(.2);doc.line(M,200,W-M,200);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
+    doc.text(pdfTxt('mamu hospitality · Schönbrunner Straße 179 | AT - 1120 Vienna'),M,204);doc.text(`Seite ${i} / ${n}`,W-M,204,{align:'right'})}
+  const blob=doc.output('blob');
+  await saveFile(`${fileBase()}_USALI_${S.scen||'Base'}_${R.cal}.pdf`,blob,'application/pdf');
+}
+
+/* ================= Start ================= */
+renderStep(false);
+
+/* ================= Excel-Export (ExcelJS) ================= */
+function loadExcelJS(){
+  if(window.ExcelJS)return Promise.resolve(window.ExcelJS);
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    s.onload=()=>res(window.ExcelJS);s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)});
+}
+async function makeXlsx(withF){
+  let EX;try{EX=await loadExcelJS()}catch(e){toast('Excel-Bibliothek nicht geladen. Bitte Internetverbindung prüfen.');return}
+  if(!EX){toast('Excel-Bibliothek nicht verfügbar.');return}
+  toast('Excel wird erstellt …');
+  const wb=new EX.Workbook(); wb.creator='mamu hospitality'; wb.created=new Date();
+  const wsU=wb.addWorksheet('USALI',{views:[{state:'frozen',xSplit:2,ySplit:4}]}), wsS=wb.addWorksheet('Schedules',{views:[{state:'frozen',ySplit:3}]}),
+        wsP=wb.addWorksheet('Personal'), wsC=wb.addWorksheet('Szenarien'),
+        wsT=wb.addWorksheet('Treiber',{views:[{state:'frozen',xSplit:2,ySplit:4}]}), wsA=wb.addWorksheet('Annahmen',{views:[{state:'frozen',ySplit:4}]});
+  const scen=S.scen||'Base', dyI=(ui.dy||+S.p.stab), Rd=RES[dyI-1], NY=RES.length;
+  const OL='FF77704A',TE='FF9A7659',KEY='FFF0EFE9',LINE='FFE2DFDA',CH='FF2E2C2D',DYF='FFF7F0EA';
+  const FONT={name:'Montserrat',size:9,color:{argb:CH}};
+  const NUM='#,##0;[Red]-#,##0', PCT='0.0%', EUR2='#,##0.00', X=i=>String.fromCharCode(67+i); // C..L
+  const title=(ws,t,sub)=>{ws.getCell('A1').value=t;ws.getCell('A1').font={name:'Lato',size:14,bold:true,color:{argb:CH}};
+    ws.getCell('A2').value=sub;ws.getCell('A2').font={...FONT,color:{argb:'FF8C8789'}}};
+  const headRow=(ws,r,vals)=>{const row=ws.getRow(r);vals.forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.font={...FONT,bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:OL}};c.alignment={horizontal:i?'right':'left',vertical:'middle'}});row.height=18};
+  const styleRow=(row,type,n)=>{for(let i=1;i<=n;i++){const c=row.getCell(i);c.font={...FONT,...(c.font&&c.font.italic?{italic:true}:{})};
+      if(type==='hd'){c.font={...FONT,bold:true,color:{argb:TE}}}
+      if(type==='key'||type==='gop'){c.font={...FONT,bold:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:KEY}};c.border={top:{style:'thin',color:{argb:'FF9B9599'}}}}
+      if(type==='tot'){c.font={...FONT,bold:true};c.border={top:{style:'thin',color:{argb:'FFC6C1C2'}}}}
+      if(type==='sub'||type==='info'){c.font={...FONT,color:{argb:'FF5B5859'}}}
+      if(type==='info'){c.font={...FONT,italic:true,color:{argb:'FF8C8789'}}}
+    }};
+  const val=(f,v)=>withF&&f?{formula:f,result:isFinite(v)?v:0}:(isFinite(v)?v:0);
+
+  /* ---------- Annahmen ---------- */
+  title(wsA,'Annahmen · '+S.p.name,`Szenario ${scen} · Prozentwerte als Anteil · Beträge in heutigen Werten (Preisbasis ${S.p.baseYear}), im Modell indexiert`);
+  headRow(wsA,4,['Parameter','Bereich','Wert','Einheit']);
+  const RM={none:'keine',fix:'fix',var:'umsatz',max:'max'};
+  const AP=[
+   ['comm','Kommissionen','Rooms',S.r.exp.comm/100,'pct'],['resv','Reservierungskosten','Rooms',S.r.exp.resv/100,'pct'],
+   ['supplies','Gästeartikel & Amenities','Rooms',S.r.exp.supplies,'€ / POR'],['laundry','Wäsche & Linen','Rooms',S.r.exp.laundry,'€ / POR'],['otherR','Sonstiger Rooms-Aufwand','Rooms',S.r.exp.other/100,'pct'],
+   ['foodC','Wareneinsatz Food','F&B',S.f.exp.food/100,'pct'],['bevC','Wareneinsatz Beverage','F&B',S.f.exp.bev/100,'pct'],['otherC','Wareneinsatz Minibar','F&B',S.f.exp.other/100,'pct'],
+   ['itC','Kostenanteil IT / Technik (MICE)','F&B',S.m.itCost/100,'pct'],['miscC','Kostenanteil Misc (MICE)','F&B',S.m.miscCost/100,'pct'],
+   ['china','Porzellan, Glas, Besteck','F&B',S.f.exp.china/100,'pct'],['fsup','Betriebsmittel','F&B',S.f.exp.supplies/100,'pct'],['flaundry','Wäscherei','F&B',S.f.exp.laundry/100,'pct'],
+   ['ent','Musik & Deko','F&B',S.f.exp.ent,'€ p.a.'],['fother','Sonstiger F&B-Aufwand','F&B',S.f.exp.otherPct/100,'pct'],
+   ['spaProd','Behandlungsprodukte','Spa',S.s.exp.product/100,'pct'],['spaRetC','Wareneinsatz Retail','Spa',S.s.exp.retail/100,'pct'],['linen','Wäsche & Linen','Spa',S.s.exp.linen,'€ / Besuch'],
+   ['spaSup','Betriebsmittel','Spa',S.s.exp.supplies/100,'pct'],['spaOther','Sonstiger Spa-Aufwand','Spa',S.s.exp.other/100,'pct'],
+   ['agPct','A&G Aufwand','A&G',S.u.agPct/100,'pct'],['agFix','A&G Fixkosten','A&G',S.u.agFix,'€ p.a.'],['cc','Kreditkartengebühren','A&G',S.u.cc/100,'pct'],
+   ['itPct','IT Aufwand','IT',S.u.itPct/100,'pct'],['itKey','Software & Lizenzen','IT',S.u.itKey,'€ / Key p.a.'],
+   ['smPct','S&M Aufwand','S&M',S.u.smPct/100,'pct'],['royR','Royalty / Franchise (Rooms)','S&M',S.u.royR/100,'pct'],['royF','Royalty F&B','S&M',S.u.royF/100,'pct'],['mkt','Marketing Fee (Rooms)','S&M',S.u.mkt/100,'pct'],['loy','Loyalty (Rooms)','S&M',S.u.loy/100,'pct'],
+   ['pomPct','POM Aufwand','POM',S.u.pomPct/100,'pct'],['pomKey','Wartungsverträge','POM',S.u.pomKey,'€ / Key p.a.'],
+   ['gfa','Bruttogeschossfläche','Utilities',S.p.gfa,'m²'],['utM2','Energie Grundlast','Utilities',S.u.utM2,'€ / m² BGF'],['spaArea','Spa-Fläche','Utilities',S.p.spaArea,'m²'],['utSpa','Zuschlag Spa','Utilities',S.u.utSpa,'€ / m² Spa'],['utPor','Variabler Anteil','Utilities',S.u.utPor,'€ / POR'],
+   ['base','Base Fee','Fees',S.u.base/100,'pct'],['inc','Incentive Fee (AGOP)','Fees',S.u.inc/100,'pct'],
+   ['income','Non-Operating Income','Non-Op',S.n.income,'€ p.a.'],['rentMode','Pachtmodell (keine / fix / umsatz / max)','Non-Op',RM[S.n.rentMode],'txt'],
+   ['rentKey','Fixpacht','Non-Op',S.n.rentKey,'€ / Key / Monat'],['rentRooms','Umsatzpacht Rooms','Non-Op',S.n.rentRooms/100,'pct'],['rentOther','Umsatzpacht übrige','Non-Op',S.n.rentOther/100,'pct'],
+   ['tax','Grundsteuer & Abgaben','Non-Op',S.n.tax/100,'pct'],['ins','Versicherung','Non-Op',S.n.ins/100,'pct'],['nother','Sonstiges','Non-Op',S.n.other/100,'pct'],['bldg','Gebäude-Reserve','Reserve',S.n.bldg/100,'pct']
+  ];
+  const rA={};
+  AP.forEach(([k,l,g,v,u],i)=>{const r=5+i;rA[k]=r;const row=wsA.getRow(r);row.getCell(1).value=l;row.getCell(2).value=g;const c=row.getCell(3);c.value=v;
+    c.numFmt=u==='pct'?PCT:u==='txt'?'@':(Math.abs(v)<100&&v%1!==0?EUR2:'#,##0.##');row.getCell(4).value=u==='pct'?'%':u==='txt'?'':u;
+    styleRow(row,'row',4); if(withF)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFBF6EF'}}});
+  if(withF){const r=5+AP.length+1;wsA.getCell('A'+r).value='Gelb hinterlegte Werte können geändert werden; Treiber und USALI rechnen mit Formeln nach.';wsA.getCell('A'+r).font={...FONT,italic:true,color:{argb:'FF8C8789'}}}
+  wsA.columns=[{width:40},{width:12},{width:14},{width:18}];
+  const A=k=>`Annahmen!$C$${rA[k]}`;
+
+  /* ---------- Treiber ---------- */
+  title(wsT,'Treiber je Jahr · '+S.p.name,`Szenario ${scen} · Ergebnisse der Eingabemodule des Tools (Nominalwerte)`);
+  headRow(wsT,4,['Treiber','Einheit',...RES.map((r,i)=>`${yLabel(i+1)} ${r.cal}`)]);
+  const TP=[
+   ['keys','Keys','Anzahl',R=>R.keys],['avail','Verfügbare Zimmer','RN',R=>R.avail],['sold','Verkaufte Zimmer','RN',R=>R.sold],['adr','ADR netto','€',R=>R.adr,'eur2'],
+   ['roomsRev','Rooms Revenue','€',R=>R.roomsRev,null,c=>`${c}${rT.sold}*${c}${rT.adr}`],
+   ['food','Food Revenue','€',R=>R.fb.food],['bev','Beverage Revenue','€',R=>R.fb.bev],['minibar','Minibar / In-Room','€',R=>R.fb.minibar],
+   ['roomRent','MICE Raumanteil','€',R=>R.fb.rent],['it','MICE IT / Technik','€',R=>R.fb.it],['misc','MICE Misc','€',R=>R.fb.misc],
+   ['fbOther','F&B Other Revenue','€',R=>R.fb.other,null,c=>`${c}${rT.minibar}+${c}${rT.roomRent}+${c}${rT.it}+${c}${rT.misc}`],
+   ['fbRev','F&B Revenue','€',R=>R.fb.rev,null,c=>`${c}${rT.food}+${c}${rT.bev}+${c}${rT.fbOther}`],
+   ['treat','Spa Treatments','€',R=>R.spa.treat],['spaRetail','Spa Retail','€',R=>R.spa.retail],['spaOther','Spa Day Spa, Memberships, Sonstiges','€',R=>R.spa.entr+R.spa.mem+R.spa.other],
+   ['spaRev','Spa Revenue','€',R=>R.spa.rev,null,c=>`${c}${rT.treat}+${c}${rT.spaRetail}+${c}${rT.spaOther}`],
+   ['spaVisits','Spa-Besuche (Behandlungen + Day Spa)','Anzahl',R=>R.spa.t+R.spa.dayG],
+   ['oodRev','OOD Revenue','€',R=>R.oodRev],['oodCos','OOD Cost of Sales','€',R=>R.dOod.cos],['oodExp','OOD Other Expenses','€',R=>R.dOod.other],['miscInc','Miscellaneous Income','€',R=>R.misc],
+   ...DEPTS.map(([k,l])=>['pay_'+k,'Payroll '+l,'€',R=>R.pay[k].total]),
+   ['fte','FTE (Ø Saison)','FTE',R=>R.fte,'eur2'],
+   ['pi','Preisindex Umsatz','Faktor',R=>R.pi,'f4'],['ci','Kostenindex','Faktor',R=>R.ci,'f4'],['ffe','FF&E Reserve','%',R=>(S.proj.rows[R.y-1]?.ffe||0)/100,'pct']
+  ];
+  const rT={}; TP.forEach(([k],i)=>rT[k]=5+i);
+  TP.forEach(([k,l,u,g,fm,ff],i)=>{const row=wsT.getRow(5+i);row.getCell(1).value=l;row.getCell(2).value=u;
+    RES.forEach((R,y)=>{const c=row.getCell(3+y);c.value=val(ff&&ff(X(y)),g(R));c.numFmt=fm==='pct'?PCT:fm==='eur2'?EUR2:fm==='f4'?'0.0000':NUM});
+    styleRow(row,ff?'tot':'row',2+NY)});
+  wsT.columns=[{width:38},{width:9},...RES.map(()=>({width:13}))];
+  const T=(k,c)=>`Treiber!${c}${rT[k]}`;
+
+  /* ---------- USALI ---------- */
+  const dyC=X(dyI-1);
+  title(wsU,'Summary Operating Statement · '+S.p.name,`USALI 11th Edition · Szenario ${scen} · ${S.p.type}, ${S.p.location} · ${keysOf(S)} Keys · Eröffnung ${S.p.openYear} · EUR`);
+  headRow(wsU,4,['Position','',...RES.map((r,i)=>`${yLabel(i+1)} ${r.cal}${i+1===+S.p.stab?' stabil':''}`),`% ${yLabel(dyI)}`,`POR ${yLabel(dyI)}`]);
+  const U=(k,c)=>`${c}${rU[k]}`;
+  const UR=[
+   ['h1','Operating Revenue','hd'],
+   ['rRooms','Rooms','row',c=>T('roomsRev',c),R=>R.roomsRev,'tr'],['rFb','Food & Beverage','row',c=>T('fbRev',c),R=>R.fb.rev,'tr'],['rSpa','Spa','row',c=>T('spaRev',c),R=>R.spa.rev,'tr'],
+   ['rOod','Other Operated Departments','row',c=>T('oodRev',c),R=>R.oodRev,'tr'],['rMisc','Miscellaneous Income','row',c=>T('miscInc',c),R=>R.misc,'tr'],
+   ['tr','Total Operating Revenue','tot',c=>`SUM(${U('rRooms',c)}:${U('rMisc',c)})`,R=>R.tr,'tr'],
+   ['h2','Departmental Expenses','hd'],
+   ['eRooms','Rooms','row',c=>`${T('pay_Rooms',c)}+${T('roomsRev',c)}*(${A('comm')}+${A('resv')}+${A('otherR')})+${T('sold',c)}*(${A('supplies')}+${A('laundry')})*${T('ci',c)}`,R=>R.dRooms.exp,'rRooms'],
+   ['eFb','Food & Beverage','row',c=>`${T('food',c)}*${A('foodC')}+${T('bev',c)}*${A('bevC')}+${T('minibar',c)}*${A('otherC')}+${T('it',c)}*${A('itC')}+${T('misc',c)}*${A('miscC')}+${T('pay_F&B',c)}+${T('fbRev',c)}*(${A('china')}+${A('fsup')}+${A('flaundry')}+${A('fother')})+${A('ent')}*${T('ci',c)}`,R=>R.dFb.exp,'rFb'],
+   ['eSpa','Spa','row',c=>`${T('treat',c)}*${A('spaProd')}+${T('spaRetail',c)}*${A('spaRetC')}+${T('pay_Spa',c)}+${A('linen')}*${T('spaVisits',c)}*${T('ci',c)}+${T('spaRev',c)}*(${A('spaSup')}+${A('spaOther')})`,R=>R.dSpa.exp,'rSpa'],
+   ['eOod','Other Operated Departments','row',c=>`${T('oodCos',c)}+${T('pay_OOD',c)}+${T('oodExp',c)}`,R=>R.dOod.exp,'rOod'],
+   ['dexp','Total Departmental Expenses','tot',c=>`SUM(${U('eRooms',c)}:${U('eOod',c)})`,R=>R.deptExp,'tr'],
+   ['dprof','Total Departmental Profit','key',c=>`${U('tr',c)}-${U('dexp',c)}`,R=>R.deptProfit,'tr'],
+   ['h3','Undistributed Operating Expenses','hd'],
+   ['uAg','Administrative & General','row',c=>`${T('pay_A&G',c)}+${U('tr',c)}*(${A('agPct')}+${A('cc')})+${A('agFix')}*${T('ci',c)}`,R=>R.uAg.tot,'tr'],
+   ['uIt','Information & Telecommunication Systems','row',c=>`${T('pay_IT',c)}+${U('tr',c)}*${A('itPct')}+${A('itKey')}*${T('keys',c)}*${T('ci',c)}`,R=>R.uIt.tot,'tr'],
+   ['uSm','Sales & Marketing','row',c=>`${T('pay_S&M',c)}+${U('tr',c)}*${A('smPct')}+${T('roomsRev',c)}*(${A('royR')}+${A('mkt')}+${A('loy')})+${T('fbRev',c)}*${A('royF')}`,R=>R.uSm.tot,'tr'],
+   ['uPom','Property Operation & Maintenance','row',c=>`${T('pay_POM',c)}+${U('tr',c)}*${A('pomPct')}+${A('pomKey')}*${T('keys',c)}*${T('ci',c)}`,R=>R.uPom.tot,'tr'],
+   ['uUt','Utilities','row',c=>`(${A('gfa')}*${A('utM2')}+${A('spaArea')}*${A('utSpa')}+${A('utPor')}*${T('sold',c)})*${T('ci',c)}`,R=>R.uUt.tot,'tr'],
+   ['und','Total Undistributed Expenses','tot',c=>`SUM(${U('uAg',c)}:${U('uUt',c)})`,R=>R.undist,'tr'],
+   ['gop','Gross Operating Profit','gop',c=>`${U('dprof',c)}-${U('und',c)}`,R=>R.gop,'tr'],
+   ['fBase','Base Fee','sub',c=>`${U('tr',c)}*${A('base')}`,R=>R.feeBase,'tr'],
+   ['fInc','Incentive Fee','sub',c=>`MAX(0,${U('gop',c)}-${U('fBase',c)})*${A('inc')}`,R=>R.feeInc,'tr'],
+   ['fees','Management Fees','row',c=>`${U('fBase',c)}+${U('fInc',c)}`,R=>R.fees,'tr'],
+   ['ibn','Income before Non-Operating Income & Expenses','key',c=>`${U('gop',c)}-${U('fees',c)}`,R=>R.ibnoie,'tr'],
+   ['h4','Non-Operating Income & Expenses','hd'],
+   ['nInc','Income','row',c=>`${A('income')}*${T('pi',c)}`,R=>R.nIncome,'tr'],
+   ['rFix','Info: Fixpacht','info',c=>`${A('rentKey')}*${T('keys',c)}*12*${T('ci',c)}`,R=>R.rentFix,'tr'],
+   ['rVar','Info: Umsatzpacht','info',c=>`${T('roomsRev',c)}*${A('rentRooms')}+(${U('tr',c)}-${T('roomsRev',c)})*${A('rentOther')}`,R=>R.rentVar,'tr'],
+   ['rent','Rent','row',c=>`IF(${A('rentMode')}="keine",0,IF(${A('rentMode')}="fix",${U('rFix',c)},IF(${A('rentMode')}="umsatz",${U('rVar',c)},MAX(${U('rFix',c)},${U('rVar',c)}))))`,R=>R.rent,'tr'],
+   ['nTax','Property & Other Taxes','row',c=>`${U('tr',c)}*${A('tax')}`,R=>R.nTax,'tr'],['nIns','Insurance','row',c=>`${U('tr',c)}*${A('ins')}`,R=>R.nIns,'tr'],['nOth','Other','row',c=>`${U('tr',c)}*${A('nother')}`,R=>R.nOther,'tr'],
+   ['nonop','Total Non-Operating Income & Expenses (net)','tot',c=>`${U('rent',c)}+${U('nTax',c)}+${U('nIns',c)}+${U('nOth',c)}-${U('nInc',c)}`,R=>R.nonop,'tr'],
+   ['ebitda','EBITDA','key',c=>`${U('ibn',c)}-${U('nonop',c)}`,R=>R.ebitda,'tr'],
+   ['res','Replacement Reserve','row',c=>`${U('tr',c)}*(${T('ffe',c)}+${A('bldg')})`,R=>R.reserve,'tr'],
+   ['ebR','EBITDA less Replacement Reserve','key',c=>`${U('ebitda',c)}-${U('res',c)}`,R=>R.ebitdaR,'tr'],
+   ['h5','Statistics','hd'],
+   ['sKeys','Keys','sub',c=>T('keys',c),R=>R.keys,null,NUM],['sAv','Available Rooms','sub',c=>T('avail',c),R=>R.avail,null,NUM],['sSold','Rooms Sold','sub',c=>T('sold',c),R=>R.sold,null,NUM],
+   ['sOcc','Occupancy','sub',c=>`IFERROR(${U('sSold',c)}/${U('sAv',c)},0)`,R=>R.occ,null,PCT],['sAdr','ADR (€)','sub',c=>T('adr',c),R=>R.adr,null,EUR2],
+   ['sRevpar','RevPAR (€)','sub',c=>`IFERROR(${U('rRooms',c)}/${U('sAv',c)},0)`,R=>R.revpar,null,EUR2],['sTrev','TRevPAR (€)','sub',c=>`IFERROR(${U('tr',c)}/${U('sAv',c)},0)`,R=>R.trevpar,null,EUR2],
+   ['sGoppar','GOPPAR (€)','sub',c=>`IFERROR(${U('gop',c)}/${U('sAv',c)},0)`,R=>R.goppar,null,EUR2],['sGopP','GOP in % Revenue','sub',c=>`IFERROR(${U('gop',c)}/${U('tr',c)},0)`,R=>R.tr?R.gop/R.tr:0,null,PCT],
+   ['sEbP','EBITDA in % Revenue','sub',c=>`IFERROR(${U('ebitda',c)}/${U('tr',c)},0)`,R=>R.tr?R.ebitda/R.tr:0,null,PCT],['sFte','FTE (Ø Saison)','sub',c=>T('fte',c),R=>R.fte,null,EUR2]
+  ];
+  const rU={}; UR.forEach(([k],i)=>rU[k]=5+i);
+  const baseV=(R,b)=>b==='tr'?R.tr:b==='rRooms'?R.roomsRev:b==='rFb'?R.fb.rev:b==='rSpa'?R.spa.rev:b==='rOod'?R.oodRev:R.tr;
+  UR.forEach(([k,l,t,ff,g,b,fmt],i)=>{const row=wsU.getRow(5+i);row.getCell(1).value=t==='hd'?l.toUpperCase():l;
+    if(t!=='hd'){
+      RES.forEach((R,y)=>{const c=row.getCell(3+y);c.value=val(ff(X(y)),g(R));c.numFmt=fmt||NUM});
+      if(b){const v=g(Rd),bv=baseV(Rd,b);const pc=row.getCell(3+NY),po=row.getCell(4+NY);
+        pc.value=val(`IFERROR(${dyC}${5+i}/${dyC}${rU[b]},0)`,bv?v/bv:0);pc.numFmt=PCT;
+        po.value=val(`IFERROR(${dyC}${5+i}/${dyC}${rU.sSold},0)`,Rd.sold?v/Rd.sold:0);po.numFmt=EUR2;}
+    }
+    styleRow(row,t,4+NY);
+    if(t!=='hd'&&t!=='key'&&t!=='gop'){const c=row.getCell(3+dyI-1);c.fill={type:'pattern',pattern:'solid',fgColor:{argb:DYF}}}
+  });
+  wsU.columns=[{width:44},{width:2},...RES.map(()=>({width:13})),{width:10},{width:10}];
+  wsU.pageSetup={orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};
+
+  /* ---------- Schedules (Werte, Detailjahr) ---------- */
+  title(wsS,`Departmental Schedules · ${yLabel(dyI)} ${Rd.cal}`,`Szenario ${scen} · Werte in EUR · % der Abteilungsumsätze · POR = je verkauftem Zimmer`);
+  const D=scheduleData(Rd); let r=4;
+  [['Rooms',Rd.roomsRev,D.rooms],['Food & Beverage',Rd.fb.rev,D.fb],['Spa',Rd.spa.rev,D.spa],['Other Operated Departments',Rd.oodRev,D.ood],['Undistributed Operating Expenses',Rd.tr,D.und]].forEach(([tt,rev,rows])=>{
+    headRow(wsS,r,[tt,'EUR','%','POR €']);r++;
+    rows.forEach(([t,l,v])=>{const row=wsS.getRow(r);row.getCell(1).value=t==='hd'?l.toUpperCase():l;
+      if(t!=='hd'){row.getCell(2).value=v;row.getCell(2).numFmt=NUM;row.getCell(3).value=rev?v/rev:0;row.getCell(3).numFmt=PCT;row.getCell(4).value=Rd.sold?v/Rd.sold:0;row.getCell(4).numFmt=EUR2}
+      styleRow(row,t,4);r++});r++;});
+  wsS.columns=[{width:52},{width:14},{width:9},{width:10}];
+
+  /* ---------- Personal ---------- */
+  title(wsP,`Payroll & Staffing · ${yLabel(dyI)} ${Rd.cal}`,`Szenario ${scen} · FY = Ganzjahreskraft, S = Saisonkraft`);
+  headRow(wsP,4,['Abteilung','FTE Ø Saison','Wages','Related','Total','% Revenue']);r=5;
+  DEPTS.forEach(([k,l])=>{const P=Rd.pay[k],row=wsP.getRow(r++);[l,P.fte,P.wages,P.rel+P.contract+P.extra,P.total,Rd.tr?P.total/Rd.tr:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1?'0.0':i===5?PCT:NUM});styleRow(row,'row',6)});
+  {const row=wsP.getRow(r++);['Total',Rd.fte,sum(Object.values(Rd.pay).map(p=>p.wages)),sum(Object.values(Rd.pay).map(p=>p.rel+p.contract+p.extra)),Rd.payTotal,Rd.tr?Rd.payTotal/Rd.tr:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1?'0.0':i===5?PCT:NUM});styleRow(row,'key',6)}
+  r++;headRow(wsP,r++,['Stellenplan','Abteilung','Früh','Mittel','Spät','Kopf = FTE','Brutto € / Monat','FY / S']);
+  S.st.pos.forEach(p=>{const row=wsP.getRow(r++);[p.pos,p.dept,+p.e,+p.m,+p.l,p.hf?'ja':'nein',+p.sal,p.fs].forEach((v,i)=>{row.getCell(i+1).value=v;if(i===6)row.getCell(i+1).numFmt=NUM});styleRow(row,'row',8)});
+  wsP.columns=[{width:34},{width:14},{width:12},{width:12},{width:12},{width:12},{width:16},{width:9}];
+
+  /* ---------- Szenarien ---------- */
+  title(wsC,`Szenario-Vergleich · ${yLabel(dyI)} ${Rd.cal}`,'Abweichungen gegenüber Base gelten zusätzlich zum Hochlauf');
+  headRow(wsC,4,['Kennzahl',...SCEN]);
+  const rs=SCEN.map(k=>computeYear(S,dyI,k)); r=5;
+  [['Belegung Δ pp',k=>k==='Base'?0:+S.sc[k].occ,'0.0'],['ADR Δ %',k=>k==='Base'?0:S.sc[k].adr/100,PCT],['Ext. Nachfrage Δ %',k=>k==='Base'?0:S.sc[k].ext/100,PCT],['Kosten Δ %',k=>k==='Base'?0:S.sc[k].cost/100,PCT]].forEach(([l,f,fm])=>{
+    const row=wsC.getRow(r++);row.getCell(1).value=l;SCEN.forEach((k,i)=>{const c=row.getCell(2+i);c.value=f(k);c.numFmt=fm});styleRow(row,'sub',4)});
+  r++;
+  [['Occupancy',R=>R.occ,PCT],['ADR (€)',R=>R.adr,EUR2],['Total Revenue',R=>R.tr,NUM],['GOP',R=>R.gop,NUM],['GOP %',R=>R.tr?R.gop/R.tr:0,PCT],['EBITDA',R=>R.ebitda,NUM],['EBITDA less Reserve',R=>R.ebitdaR,NUM]].forEach(([l,f,fm])=>{
+    const row=wsC.getRow(r++);row.getCell(1).value=l;rs.forEach((R,i)=>{const c=row.getCell(2+i);c.value=f(R);c.numFmt=fm});styleRow(row,'row',4)});
+  wsC.columns=[{width:26},{width:14},{width:14},{width:14}];
+
+
+  const buf=await wb.xlsx.writeBuffer();
+  await saveFile(`${fileBase()}_PL_${scen}_${withF?'Formeln':'Werte'}.xlsx`,new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+</script></body></html>
