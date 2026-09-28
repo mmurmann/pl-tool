@@ -696,8 +696,7 @@ projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskal
  html:block('sec-proj','Projektdaten','',`<div class="grid">${TXT('p.name','Projektname',{rr:1})}${TXT('p.location','Standort')}
    ${SEL('p.country','Land (MwSt.-Vorgabe)',Object.entries(VATP).map(([k,v])=>[k,v.n]),{rr:1})}
    ${SEL('p.cls','Klassifizierung',['Economy','Midscale','Upper Midscale','Upscale','Upper Upscale','Luxury'].map(x=>[x,x]))}
-   ${SEL('p.type','Betriebstyp',['Hotel','Resort','Boutique Hotel','Serviced Apartments','Hostel'].map(x=>[x,x]))}
-   ${NUM('p.gfa','Bruttogeschossfläche','m²',{tip:'Grundlage für Energie-Grundlast und Kennzahlen je m²'})}${NUM('p.spaArea','Spa-Fläche','m²',{tip:'Für den Energie-Zuschlag Spa'})}</div>`)
+   ${SEL('p.type','Betriebstyp',['Hotel','Resort','Boutique Hotel','Serviced Apartments','Hostel'].map(x=>[x,x]))}</div>`)
  +block('sec-time','Zeitachse & Indexierung','Die Projektion umfasst 10 Betriebsjahre. Das Stabilisierungsjahr ist das erste Jahr ohne Hochlauf-Abschläge und die Referenz für das Live-Ergebnis.',
    `<div class="grid">${NUM('p.baseYear','Preisbasis (heutige Werte)','Jahr',{step:1})}${NUM('p.openYear','Eröffnungsjahr (J1)','Jahr',{step:1})}
    ${SEL('p.stab','Stabilisierungsjahr',[1,2,3,4,5].map(n=>[n,'J'+n]),{num:1})}
@@ -819,8 +818,8 @@ undist:()=>({t:'Betriebskosten & Fees',lead:'Undistributed Operating Expenses na
  +block('sec-it','Information & Telecommunication Systems','',`<div class="grid">${NUM('u.itPct','IT Aufwand','% Umsatz')}${NUM('u.itKey','Software & Lizenzen','€ / Key p.a.')}</div>`)
  +block('sec-sm','Sales & Marketing','Franchise- und Markengebühren werden nach USALI unter Sales & Marketing ausgewiesen.',`<div class="grid">${NUM('u.smPct','S&M Aufwand','% Umsatz')}${NUM('u.royR','Royalty / Franchise','% Rooms')}${NUM('u.royF','Royalty F&B','% F&B')}${NUM('u.mkt','Marketing Fee','% Rooms')}${NUM('u.loy','Loyalty','% Rooms')}</div>`)
  +block('sec-pom','Property Operation & Maintenance','',`<div class="grid">${NUM('u.pomPct','POM Aufwand','% Umsatz')}${NUM('u.pomKey','Wartungsverträge','€ / Key p.a.')}</div>`)
- +block('sec-ut','Utilities','Grundlast je m² Bruttogeschossfläche, Zuschlag je m² Spa (Becken, Sauna) und variabler Anteil je belegtem Zimmer. Flächen im Schritt Projekt.',
-   `<div class="grid">${NUM('u.utM2','Energie & Wasser Grundlast','€ / m² BGF')}${NUM('u.utSpa','Zuschlag Spa','€ / m² Spa')}${NUM('u.utPor','Variabler Anteil','€ / POR')}</div>`)
+ +block('sec-ut','Utilities','Grundlast je m² Bruttogeschossfläche, Zuschlag je m² Spa (Becken, Sauna) und variabler Anteil je belegtem Zimmer.',
+   `<div class="grid row" style="--n:5">${NUM('p.gfa','Bruttogeschossfläche','m² BGF')}${NUM('u.utM2','Energie & Wasser Grundlast','€ / m² BGF')}${NUM('p.spaArea','Spa-Fläche','m² Spa',{tip:'Becken, Sauna, Behandlung – für den Energie-Zuschlag'})}${NUM('u.utSpa','Zuschlag Spa','€ / m² Spa')}${NUM('u.utPor','Variabler Anteil','€ / POR')}</div>`)
  +block('sec-fees','Management Fees','Incentive Fee auf den Adjusted GOP (GOP abzüglich Base Fee).',`<div class="grid">${NUM('u.base','Base Fee','% Umsatz')}${NUM('u.inc','Incentive Fee','% AGOP')}</div>`)}),
 
 nonop:()=>({t:'Pacht & Non-Operating',lead:'Pacht, Grundsteuern, Versicherung und Rücklagen unterhalb des GOP.',
