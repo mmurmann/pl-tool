@@ -123,6 +123,7 @@ table.t th:first-child,table.t td:first-child{text-align:left}
 table.t td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 table.t td input,table.t td select{width:100%;min-width:52px;max-width:110px;border:1px solid var(--line-2);border-radius:3px;background:var(--input);padding:5px 6px;text-align:right}
 table.t td input[type=text],table.t td select{text-align:left;min-width:120px;max-width:none}
+table.t td select.sm{min-width:0;width:auto}
 table.t td input:focus,table.t td select:focus{outline:none;border-color:var(--focus)}
 table.t tfoot td{font-weight:700;border-top:1px solid var(--line-2);border-bottom:0}
 table.t td.muted{color:var(--ink-3)}
@@ -290,6 +291,10 @@ const MONTHS=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov'
 const MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
 const SEAS={L:'Nebensaison',M:'Zwischensaison',H:'Hauptsaison'};
 const MEALS=[['bf','Frühstück'],['lu','Mittag'],['af','Nachmittag / Café'],['di','Abendessen'],['bar','Bar / Abend']];
+const POSDEPTS=['Rooms','F&B','Küche','Spa','OOD','A&G','IT','S&M','POM'];
+const PCTOPT=[[100,'100 %'],[75,'75 %'],[50,'50 %'],[25,'25 %']];
+const posPct=p=>(p.pct==null?100:+p.pct)/100;
+const deptOf=d=>d==='Küche'?'F&B':d;
 const DEPTS=[['Rooms','Rooms'],['F&B','Food & Beverage'],['Spa','Spa'],['OOD','Other Operated Dept.'],['A&G','Administrative & General'],['IT','Information & Telecom. Systems'],['S&M','Sales & Marketing'],['POM','Property Operation & Maintenance']];
 const VAT_STAND='2026-09';
 const VATP={
@@ -315,7 +320,7 @@ const LS_KEY='mamu-pl-tool-v1';
 function meal(on,cap,ext,food,bev,turns){return {on,cap,ext,food,bev,turns}}
 function defaults(){
   return {
-    v:4, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
+    v:5, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
     p:{name:'Beispiel: Alpenresort 72 Keys',location:'Tirol',country:'AT',cls:'Upscale',type:'Resort',
        baseYear:2026,openYear:2028,stab:3,gfa:7000,spaArea:900},
     vat:{rooms:10,food:10,bev:20,checked:false,checkedFor:null,checkedAt:null},
@@ -355,8 +360,8 @@ function defaults(){
          ['Rooms','Front Office Manager',1,0,0,true,3400,'FY'],['Rooms','Rezeption',1,1,1,false,2300,'FY'],['Rooms','Night Audit',0,0,1,false,2400,'FY'],
          ['Rooms','Hausdame / Exec. Housekeeper',1,0,0,true,2900,'FY'],['Rooms','Public Area',0,1,0,false,1900,'S'],
          ['F&B','F&B Manager',1,0,0,true,3600,'FY'],['F&B','Restaurantleitung',0,1,0,true,3000,'FY'],['F&B','Service',2,1,3,false,2250,'S'],
-         ['F&B','Bar',0,0,2,false,2300,'S'],['F&B','Küchenchef',1,0,0,true,4200,'FY'],['F&B','Sous Chef',0,1,0,true,3200,'FY'],
-         ['F&B','Chef de Partie',1,0,2,false,2600,'S'],['F&B','Commis',1,1,1,false,2150,'S'],['F&B','Abwasch / Steward',1,0,1,false,1950,'S'],
+         ['F&B','Bar',0,0,2,false,2300,'S'],['Küche','Küchenchef',1,0,0,true,4200,'FY'],['Küche','Sous Chef',0,1,0,true,3200,'FY'],
+         ['Küche','Chef de Partie',1,0,2,false,2600,'S'],['Küche','Commis',1,1,1,false,2150,'S'],['Küche','Abwasch / Steward',1,0,1,false,1950,'S'],
          ['Spa','Spa Manager',1,0,0,true,3200,'FY'],['Spa','Spa-Rezeption',1,0,1,false,2100,'S'],['Spa','Spa Attendant',1,0,1,false,1950,'S'],
          ['POM','Haustechnik',1,1,0,true,2800,'FY'],['S&M','Sales & Marketing Manager',1,0,0,true,3800,'FY'],['S&M','Reservierung / Revenue',1,0,0,true,2700,'FY'],
          ['A&G','General Manager',1,0,0,true,6500,'FY'],['A&G','Buchhaltung / HR',2,0,0,true,3000,'FY']
@@ -499,10 +504,13 @@ function computeYear(S,y,scen){
   // Personal
   const sm=seasonMonths(S), mealY=S.st.meal*S.st.mealDays*ci;
   const pay={}; DEPTS.forEach(([k])=>pay[k]={fte:0,fteY:0,wages:0,rel:0,contract:0,extra:0});
+  const K={fte:0,fteY:0,wages:0,rel:0};
   S.st.pos.forEach(p=>{
-    const heads=(+p.e)+(+p.m)+(+p.l); const fte=p.hf?heads:heads*7/S.st.workDays; const mf=p.fs==='FY'?1:sm/12;
-    const w=fte*p.sal*wi*S.st.salaries*mf; const P=pay[p.dept]; if(!P) return;
-    P.fte+=fte;P.fteY+=fte*mf;P.wages+=w;P.rel+=w*(S.st.factor-1)+fte*mf*mealY;
+    const heads=(+p.e)+(+p.m)+(+p.l); const fte=(p.hf?heads:heads*7/S.st.workDays)*posPct(p); const mf=p.fs==='FY'?1:sm/12;
+    const w=fte*p.sal*wi*S.st.salaries*mf; const P=pay[deptOf(p.dept)]; if(!P) return;
+    const rel=w*(S.st.factor-1)+fte*mf*mealY;
+    P.fte+=fte;P.fteY+=fte*mf;P.wages+=w;P.rel+=rel;
+    if(p.dept==='Küche'){K.fte+=fte;K.fteY+=fte*mf;K.wages+=w;K.rel+=rel}
   });
   // automatische Zimmermädchen
   R.hk={fteOpen:days?hkFteOpen/days:0,fteY:hkFteY};
@@ -513,6 +521,7 @@ function computeYear(S,y,scen){
   {const w=thY*S.s.salary*wi*S.st.salaries;pay.Spa.fte+=R.spa.therFteOpen;pay.Spa.fteY+=thY;pay.Spa.wages+=w;pay.Spa.rel+=w*(S.st.factor-1)+thY*mealY;pay.Spa.extra=spaRev*S.s.comm/100}
   pay.Rooms.contract=S.r.exp.contract*sold*ci;
   Object.values(pay).forEach(P=>P.total=P.wages+P.rel+P.contract+P.extra);
+  K.total=K.wages+K.rel; R.kitchen=K;
   R.pay=pay; R.fte=sum(Object.values(pay).map(p=>p.fte)); R.fteY=sum(Object.values(pay).map(p=>p.fteY));
   R.payTotal=sum(Object.values(pay).map(p=>p.total));
   // Departmental Expenses
@@ -587,6 +596,7 @@ function migrate(o){const vIn=o.v;const hadBev=!!(o.vat&&o.vat.bev!=null);const 
     o.m.rooms.forEach(r=>{if(r.rentHalf==null)r.rentHalf=Math.round((+r.rent||0)*0.6);if(!Array.isArray(r.half))r.half=o.cal.map(()=>0)});
     o.v=4;
   }
+  if(!(vIn>=5)){(o.st.pos||[]).forEach(p=>{if(p.dept==='F&B'&&/koch|köch|küche|chef de partie|sous ?chef|commis|abwasch|steward|pâtiss|patiss|executive chef|garde manger|butcher|baker|prep cook|line cook/i.test(p.pos))p.dept='Küche'});o.v=5}
   return o}
 let S=loadLS()||defaults();
 let RES=computeAll(S);
@@ -617,7 +627,7 @@ function SEL(p,label,opts,o={}){const v=get(p);
 function CHK(p,label,o={}){return `<label class="chk"><input id="${fid(p)}" type="checkbox" data-p="${p}" data-t="b"${o.rr?' data-rr="1"':''}${get(p)?' checked':''}> ${label}</label>`}
 const cN=(p,o={})=>`<input id="${fid(p)}" type="number" inputmode="decimal" step="any" data-p="${p}" data-t="n"${o.rr?' data-rr="1"':''}${o.dis?' disabled':''} value="${get(p)??''}" aria-label="${esc(o.al||p)}">`;
 const cT=(p,o={})=>`<input id="${fid(p)}" type="text" data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} value="${esc(get(p))}" aria-label="${esc(o.al||'Name')}">`;
-const cS=(p,opts,o={})=>`<select id="${fid(p)}" data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} aria-label="${esc(o.al||p)}">${opts.map(([k,l])=>`<option value="${esc(k)}"${String(k)===String(get(p))?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
+const cS=(p,opts,o={})=>`<select id="${fid(p)}"${o.cls?` class="${o.cls}"`:''} data-p="${p}" data-t="s"${o.rr?' data-rr="1"':''} aria-label="${esc(o.al||p)}">${opts.map(([k,l])=>`<option value="${esc(k)}"${String(k)===String(get(p))?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
 const cB=(p,o={})=>`<input id="${fid(p)}" type="checkbox" data-p="${p}" data-t="b"${o.rr?' data-rr="1"':''}${get(p)?' checked':''} aria-label="${esc(o.al||p)}">`;
 const calc=(k,a='')=>`<span data-calc="${k}" data-a="${a}">${CALC[k]?CALC[k](a):''}</span>`;
 const del=(arr,i)=>`<button class="xbtn" type="button" data-act="del" data-arr="${arr}" data-i="${i}" title="Zeile entfernen" aria-label="Zeile entfernen">×</button>`;
@@ -632,7 +642,7 @@ const TEMPL={
   'f.outlets':()=>({name:'Neues Outlet',type:'Restaurant',seats:40,dpw:7,meals:{bf:meal(false,0,0,0,0,1),lu:meal(false,0,0,0,0,1),af:meal(false,0,0,0,0,1),di:meal(true,20,10,35,14,1.2),bar:meal(false,0,0,0,0,1)}}),
   'm.rooms':()=>({name:'Neuer Raum',sqm:50,cap:30,pax:15,rent:300,rentHalf:180,days:S.cal.map(c=>c.open?4:0),half:S.cal.map(c=>c.open?2:0)}),
   'o.items':()=>({name:'Neue Abteilung',drv:'day',qty:0,price:0,amt:0,cos:0,exp:10}),
-  'st.pos':()=>{const l=S.st.pos[S.st.pos.length-1];return {dept:l?l.dept:'Rooms',pos:'Neue Position',e:1,m:0,l:0,hf:false,sal:2200,fs:'FY'}}
+  'st.pos':()=>{const l=S.st.pos[S.st.pos.length-1];return {dept:l?l.dept:'Rooms',pos:'Neue Position',e:1,m:0,l:0,hf:false,pct:100,sal:2200,fs:'FY'}}
 };
 
 /* ================= Berechnete Anzeigen ================= */
@@ -664,8 +674,8 @@ const CALC={
   slots:()=>`${spaSlots(S)} Slots / Raum / Tag · ${e0(S.s.rooms*spaSlots(S))} Behandlungen / Tag max.`,
   therFte:()=>e1(stab().spa.therFteOpen)+' FTE (Ø Saison)',
   oodRev:i=>{const x=stab().ood[i];return x?e0(x.rev):'–'},
-  posFte:i=>{const p=S.st.pos[i];const h=(+p.e)+(+p.m)+(+p.l);return e1(p.hf?h:h*7/S.st.workDays)},
-  posCost:i=>{const p=S.st.pos[i],R=stab();const h=(+p.e)+(+p.m)+(+p.l);const fte=p.hf?h:h*7/S.st.workDays;const mf=p.fs==='FY'?1:seasonMonths(S)/12;
+  posFte:i=>{const p=S.st.pos[i];const h=(+p.e)+(+p.m)+(+p.l);return e1((p.hf?h:h*7/S.st.workDays)*posPct(p))},
+  posCost:i=>{const p=S.st.pos[i],R=stab();const h=(+p.e)+(+p.m)+(+p.l);const fte=(p.hf?h:h*7/S.st.workDays)*posPct(p);const mf=p.fs==='FY'?1:seasonMonths(S)/12;
     const w=fte*p.sal*R.wi*S.st.salaries*mf;return e0(w*S.st.factor+fte*mf*S.st.meal*S.st.mealDays*R.ci)},
   hkFte:()=>e1(stab().hk.fteOpen)+' FTE (Ø Saison)',
   seasonAuto:()=>e1(openMonthsOf(S)),
@@ -813,11 +823,11 @@ personal:()=>({t:'Personal',lead:'Stellenplan je Abteilung mit Schichtbesetzung.
  +block('sec-hk','Zimmerreinigung automatisch','Room Attendants aus belegten Zimmern pro Tag ÷ Zimmer je Mitarbeiter:in. Alternativ Fremdreinigung unter Preise & Rooms-Kosten.',
    `<div class="grid">${`<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('st.hkAuto','automatisch berechnen',{rr:1})}</div>`}${S.st.hkAuto?NUM('st.rpa','Zimmer je Room Attendant','Zi. / Tag')+NUM('st.hkSal','Gehalt brutto','€ / Monat'):''}</div>
    ${S.st.hkAuto?`<p class="hint" style="margin-top:12px">Bedarf stabilisiertes Jahr: <b>${calc('hkFte')}</b></p>`:''}`)
- +block('sec-pos','Stellenplan','Köpfe je Schicht (Früh / Mittel / Spät). „Kopf = FTE“ für Positionen ohne 7-Tage-Abdeckung (z. B. Management). Kosten = FTE × Gehalt × Gehälter × Faktor + Personalessen, im stabilisierten Jahr.',
-   `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>Position</th><th>Früh</th><th>Mittel</th><th>Spät</th><th>Kopf = FTE</th><th>Brutto € / Monat</th><th title="FY = Ganzjahreskraft (12 Monate beschäftigt), S = Saisonkraft (nur in den Saisonmonaten beschäftigt)">Ganzjahr / Saison</th><th>FTE</th><th>Kosten p.a. €</th><th></th></tr></thead><tbody>
-   ${S.st.pos.map((p,i)=>`<tr><td>${cS(`st.pos.${i}.dept`,DEPTS.map(([k])=>[k,k]),{al:'Abteilung'})}</td><td>${cT(`st.pos.${i}.pos`,{al:'Position'})}</td>
+ +block('sec-pos','Stellenplan','Köpfe je Schicht (Früh / Mittel / Spät). „Kopf = FTE“ für Positionen ohne 7-Tage-Abdeckung (z. B. Management). Stellenumfang: Vollzeit = 40 Stunden pro Woche; Teilzeit reduziert FTE und Kosten anteilig. Das Gehalt gilt für Vollzeit. Kosten = FTE × Gehalt × Gehälter × Faktor + Personalessen, im stabilisierten Jahr.',
+   `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>Position</th><th>Früh</th><th>Mittel</th><th>Spät</th><th>Kopf =<br>FTE</th><th title="Vollzeit = 40 Stunden pro Woche · 75 % = 30 h · 50 % = 20 h · 25 % = 10 h">Umfang<br><span style="font-weight:500;text-transform:none;letter-spacing:0">100 % = 40 h</span></th><th title="Bruttogehalt für eine Vollzeitstelle (40 h)">Brutto €/Mon.<br><span style="font-weight:500;text-transform:none;letter-spacing:0">Vollzeit</span></th><th title="FY = Ganzjahreskraft (12 Monate beschäftigt), S = Saisonkraft (nur in den Saisonmonaten beschäftigt)">Ganzjahr /<br>Saison</th><th>FTE</th><th>Kosten p.a. €</th><th></th></tr></thead><tbody>
+   ${S.st.pos.map((p,i)=>`<tr><td>${cS(`st.pos.${i}.dept`,POSDEPTS.map(k=>[k,k]),{al:'Abteilung',cls:'sm'})}</td><td>${cT(`st.pos.${i}.pos`,{al:'Position'})}</td>
      <td>${cN(`st.pos.${i}.e`,{al:'Früh'})}</td><td>${cN(`st.pos.${i}.m`,{al:'Mittel'})}</td><td>${cN(`st.pos.${i}.l`,{al:'Spät'})}</td><td style="text-align:center">${cB(`st.pos.${i}.hf`,{al:'Kopf = FTE'})}</td>
-     <td>${cN(`st.pos.${i}.sal`,{al:'Gehalt'})}</td><td>${cS(`st.pos.${i}.fs`,[['FY','Ganzjahr (FY)'],['S','Saison (S)']],{al:'Ganzjahr oder Saison'})}</td><td>${calc('posFte',i)}</td><td>${calc('posCost',i)}</td><td>${del('st.pos',i)}</td></tr>`).join('')}
+     <td>${cS(`st.pos.${i}.pct`,PCTOPT,{al:'Stellenumfang',cls:'sm'})}</td><td>${cN(`st.pos.${i}.sal`,{al:'Gehalt'})}</td><td>${cS(`st.pos.${i}.fs`,[['FY','Ganzjahr (FY)'],['S','Saison (S)']],{al:'Ganzjahr oder Saison',cls:'sm'})}</td><td>${calc('posFte',i)}</td><td>${calc('posCost',i)}</td><td>${del('st.pos',i)}</td></tr>`).join('')}
    </tbody></table></div>${add('st.pos','Position')}`)}),
 
 undist:()=>({t:'Betriebskosten & Fees',lead:'Undistributed Operating Expenses nach USALI sowie Management Fees. Personal je Abteilung kommt aus dem Stellenplan.',
@@ -863,7 +873,7 @@ const MODRES={
    +(X.lost>0?`<div class="warnbox">${e0(X.lost)} Behandlungen p.a. finden keinen Slot. Mehr Räume, längere Öffnungszeit oder weniger Rüstzeit prüfen.</div>`:'')},
  ood:()=>{const R=R_();return kv([['OOD Revenue',e0(R.oodRev)+' €'],['OOD Profit',e0(R.dOod.profit)+' €'],['Misc. Income',e0(R.misc)+' €']])},
  personal:()=>{const R=R_();return `<div class="tw"><table class="t"><thead><tr><th>Abteilung</th><th>FTE Ø Saison</th><th>FTE Jahresschnitt</th><th>Kosten €</th><th>% Umsatz</th></tr></thead><tbody>
-   ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${l}</td><td>${e1(P.fte)}</td><td>${e1(P.fteY)}</td><td>${e0(P.total)}</td><td>${pc(R.tr?P.total/R.tr:0)}</td></tr>`}).join('')}</tbody>
+   ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${l}</td><td>${e1(P.fte)}</td><td>${e1(P.fteY)}</td><td>${e0(P.total)}</td><td>${pc(R.tr?P.total/R.tr:0)}</td></tr>`+(k==='F&B'?`<tr><td class="muted" style="padding-left:18px">davon Küche</td><td class="muted">${e1(R.kitchen.fte)}</td><td class="muted">${e1(R.kitchen.fteY)}</td><td class="muted">${e0(R.kitchen.total)}</td><td class="muted">${pc(R.tr?R.kitchen.total/R.tr:0)}</td></tr><tr><td class="muted" style="padding-left:18px">davon Service & Bar</td><td class="muted">${e1(P.fte-R.kitchen.fte)}</td><td class="muted">${e1(P.fteY-R.kitchen.fteY)}</td><td class="muted">${e0(P.total-R.kitchen.total)}</td><td class="muted">${pc(R.tr?(P.total-R.kitchen.total)/R.tr:0)}</td></tr>`:'')}).join('')}</tbody>
    <tfoot><tr><td>Total</td><td>${e1(R.fte)}</td><td>${e1(R.fteY)}</td><td>${e0(R.payTotal)}</td><td>${pc(R.tr?R.payTotal/R.tr:0)}</td></tr></tfoot></table></div>`},
  undist:()=>{const R=R_();return kv([['Undistributed',e0(R.undist)+' €'],['in % Umsatz',pc(R.tr?R.undist/R.tr:0)],['GOP',e0(R.gop)+' €'],['GOP Marge',pc(R.tr?R.gop/R.tr:0)],['Management Fees',e0(R.fees)+' €']])},
  nonop:()=>{const R=R_();return kv([['Pacht',e0(R.rent)+' €'],['Pacht in % Umsatz',pc(R.tr?R.rent/R.tr:0)],['EBITDA',e0(R.ebitda)+' €'],['Rent Cover',R.rent?e1(R.rentCover)+'×':'–'],['EBITDA n. Reserve',e0(R.ebitdaR)+' €']])},
@@ -984,7 +994,7 @@ function scheduleData(R){
     ['sub',`MICE-Pauschalen · ${e0(R.mice.full)} GT / ${e0(R.mice.half)} HT`,R.mice.rev,'mice|sec-mpk'],['sub','Bankette & Hochzeiten',R.mice.bq,'mice|sec-banq'],
     ['row','Food Revenue',R.fb.food],['row','Beverage Revenue',R.fb.bev],['row','Other Revenue (Minibar, Raum, IT, Misc)',R.fb.other,'mice|sec-mpk'],['tot','F&B Revenue',R.fb.rev],
     ['hd','Expenses'],['row','Cost of Food',R.dFb.cosF,'fnb|sec-fexp'],['row','Cost of Beverage',R.dFb.cosB,'fnb|sec-fexp'],['row','Cost of Other Revenue',R.dFb.cosO,'mice|sec-mpk'],
-    ['row','Labor Costs',R.dFb.labor,'personal|sec-pos'],...lab2(P['F&B']),
+    ['row','Labor Costs',R.dFb.labor,'personal|sec-pos'],...lab2(P['F&B']),['sub','davon Küche',R.kitchen.total,'personal|sec-pos'],
     ['row','China, Glass, Silver, Linen',R.dFb.china,'fnb|sec-fexp'],['row','Operating Supplies',R.dFb.supplies,'fnb|sec-fexp'],['row','Laundry',R.dFb.laundry,'fnb|sec-fexp'],['row','Music & Entertainment',R.dFb.ent,'fnb|sec-fexp'],['row','Other Expenses',R.dFb.other,'fnb|sec-fexp'],
     ['tot','Total Expenses',R.dFb.exp],['key','F&B Departmental Profit',R.dFb.profit]];
   const X=R.spa;
@@ -1016,7 +1026,7 @@ function renderResult(){
   }).join('');
   const D=scheduleData(R);
   const pay=`<div class="usali"><div class="usali-h"><h2>Payroll & Staffing</h2><small>${yLabel(ui.dy)} · ${R.cal} · ${ui.unit}</small></div><div class="tw"><table class="u"><thead><tr><th>Abteilung</th><th>FTE Ø Saison</th><th>Wages</th><th>Related</th><th>Total<span class="pvh">% Revenue</span></th></tr></thead><tbody>
-    ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${lab(l,'personal|sec-pos')}</td><td>${e1(P.fte)}</td><td>${money(P.wages)}</td><td>${money(P.rel+P.contract+P.extra)}</td><td>${money(P.total)}${pv(P.total,R.tr)}</td></tr>`}).join('')}
+    ${DEPTS.map(([k,l])=>{const P=R.pay[k];return `<tr><td>${lab(l,'personal|sec-pos')}</td><td>${e1(P.fte)}</td><td>${money(P.wages)}</td><td>${money(P.rel+P.contract+P.extra)}</td><td>${money(P.total)}${pv(P.total,R.tr)}</td></tr>`+(k==='F&B'?`<tr class="sub"><td>${lab('davon Küche','personal|sec-pos')}</td><td>${e1(R.kitchen.fte)}</td><td>${money(R.kitchen.wages)}</td><td>${money(R.kitchen.rel)}</td><td>${money(R.kitchen.total)}${pv(R.kitchen.total,R.tr)}</td></tr>`:'')}).join('')}
     <tr class="tot"><td>Total</td><td>${e1(R.fte)}</td><td>${money(sum(Object.values(R.pay).map(p=>p.wages)))}</td><td>${money(sum(Object.values(R.pay).map(p=>p.rel+p.contract+p.extra)))}</td><td>${money(R.payTotal)}${pv(R.payTotal,R.tr)}</td></tr></tbody></table></div></div>`;
   $('#main').innerHTML=`<div class="stephead"><div><div class="eyebrow">Ergebnis · USALI 11th Edition · Szenario ${esc(S.scen||'Base')}</div><h1>${esc(S.p.name)}</h1></div></div>
   <p class="lead">${esc(S.p.type)} · ${esc(S.p.cls)} · ${esc(S.p.location)} · ${e0(R.keys)} Keys · Eröffnung ${S.p.openYear} · Werte indexiert (Preisbasis ${S.p.baseYear}). Positionen anklicken, um zur Eingabe zu springen.</p>
@@ -1277,9 +1287,9 @@ async function makePdf(){
   doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.text('PAYROLL & STAFFING',M,28);
   doc.autoTable({startY:30,margin:{left:M,right:W-M-131},tableWidth:131,theme:'plain',styles:baseStyles,headStyles,
     head:[['Abteilung','FTE','Wages','Related','Total','% Rev.']],
-    body:DEPTS.map(([k,l])=>{const P=R.pay[k];return [l,e1(P.fte),mon(P.wages),mon(P.rel+P.contract+P.extra),mon(P.total),pdfTxt(pc(R.tr?P.total/R.tr:0))]})
+    body:DEPTS.flatMap(([k,l])=>{const P=R.pay[k];const rows=[[l,e1(P.fte),mon(P.wages),mon(P.rel+P.contract+P.extra),mon(P.total),pdfTxt(pc(R.tr?P.total/R.tr:0))]];if(k==='F&B'){const K=R.kitchen;rows.push(['   davon Küche',e1(K.fte),mon(K.wages),mon(K.rel),mon(K.total),pdfTxt(pc(R.tr?K.total/R.tr:0))])}return rows})
       .concat([['Total',e1(R.fte),mon(sum(Object.values(R.pay).map(p=>p.wages))),mon(sum(Object.values(R.pay).map(p=>p.rel+p.contract+p.extra))),mon(R.payTotal),pdfTxt(pc(R.tr?R.payTotal/R.tr:0))]]),
-    columnStyles:{0:{halign:'left',cellWidth:50}},didParseCell:d=>{if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left';if(d.section==='body'&&d.row.index===DEPTS.length){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=KEY}}});
+    columnStyles:{0:{halign:'left',cellWidth:50}},didParseCell:d=>{if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left';if(d.section==='body'&&d.row.index===DEPTS.length+1){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=KEY}}});
   const A=[
     ['Projekt',`${S.p.name}, ${S.p.location} (${VATP[S.p.country]?.n||''})`],['Typ / Klassifizierung',`${S.p.type} · ${S.p.cls}`],
     ['Keys / Flächen',`${keysOf(S)} Keys · BGF ${e0(S.p.gfa)} m² · Spa ${e0(S.p.spaArea)} m²`],
@@ -1478,11 +1488,11 @@ async function makeXlsx(withF){
   /* ---------- Personal ---------- */
   title(wsP,`Payroll & Staffing · ${yLabel(dyI)} ${Rd.cal}`,`Szenario ${scen} · FY = Ganzjahreskraft, S = Saisonkraft`);
   headRow(wsP,4,['Abteilung','FTE Ø Saison','Wages','Related','Total','%']);r=5;
-  DEPTS.forEach(([k,l])=>{const P=Rd.pay[k],row=wsP.getRow(r++);[l,P.fte,P.wages,P.rel+P.contract+P.extra,P.total,Rd.tr?P.total/Rd.tr*100:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row,'row',6);row.getCell(6).font=PFONT});
+  DEPTS.forEach(([k,l])=>{const P=Rd.pay[k],row=wsP.getRow(r++);[l,P.fte,P.wages,P.rel+P.contract+P.extra,P.total,Rd.tr?P.total/Rd.tr*100:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row,'row',6);row.getCell(6).font=PFONT;if(k==='F&B'){const K=Rd.kitchen,row2=wsP.getRow(r++);['   davon Küche',K.fte,K.wages,K.rel,K.total,Rd.tr?K.total/Rd.tr*100:0].forEach((v,i)=>{const c=row2.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row2,'sub',6);row2.getCell(6).font=PFONT}});
   {const row=wsP.getRow(r++);['Total',Rd.fte,sum(Object.values(Rd.pay).map(p=>p.wages)),sum(Object.values(Rd.pay).map(p=>p.rel+p.contract+p.extra)),Rd.payTotal,Rd.tr?Rd.payTotal/Rd.tr*100:0].forEach((v,i)=>{const c=row.getCell(i+1);c.value=v;c.numFmt=i===1||i===5?'0.0':NUM});styleRow(row,'key',6);row.getCell(6).font={...PFONT,bold:true}}
-  r++;headRow(wsP,r++,['Stellenplan','Abteilung','Früh','Mittel','Spät','Kopf = FTE','Brutto € / Monat','FY / S']);
-  S.st.pos.forEach(p=>{const row=wsP.getRow(r++);[p.pos,p.dept,+p.e,+p.m,+p.l,p.hf?'ja':'nein',+p.sal,p.fs].forEach((v,i)=>{row.getCell(i+1).value=v;if(i===6)row.getCell(i+1).numFmt=NUM});styleRow(row,'row',8)});
-  wsP.columns=[{width:34},{width:14},{width:12},{width:12},{width:12},{width:10},{width:16},{width:9}];
+  r++;headRow(wsP,r++,['Stellenplan','Abteilung','Früh','Mittel','Spät','Kopf = FTE','Brutto € / Monat (VZ)','FY / S','Stellenumfang']);
+  S.st.pos.forEach(p=>{const row=wsP.getRow(r++);[p.pos,p.dept,+p.e,+p.m,+p.l,p.hf?'ja':'nein',+p.sal,p.fs,(p.pct==null?100:+p.pct)+' %'].forEach((v,i)=>{row.getCell(i+1).value=v;if(i===6)row.getCell(i+1).numFmt=NUM});styleRow(row,'row',9)});
+  wsP.columns=[{width:34},{width:14},{width:12},{width:12},{width:12},{width:10},{width:20},{width:9},{width:13}];
 
   /* ---------- Szenarien ---------- */
   title(wsC,`Szenario-Vergleich · ${yLabel(dyI)} ${Rd.cal}`,'Abweichungen gegenüber Base gelten zusätzlich zum Hochlauf');
