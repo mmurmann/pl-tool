@@ -298,13 +298,13 @@ const deptOf=d=>d==='Küche'?'F&B':d;
 const DEPTS=[['Rooms','Rooms'],['F&B','Food & Beverage'],['Spa','Spa'],['OOD','Other Operated Dept.'],['A&G','Administrative & General'],['IT','Information & Telecom. Systems'],['S&M','Sales & Marketing'],['POM','Property Operation & Maintenance']];
 const VAT_STAND='2026-09';
 const VATP={
- AT:{n:'Österreich',rooms:10,food:10,bev:20,note:'Beherbergung inkl. Frühstück 10 %, Speisen 10 %, Getränke in der Gastronomie 20 % (Leitungswasser/Milch 10 %).',src:'https://www.wko.at/steuern/ermaessigte-umsatzsteuer-saetze'},
- DE:{n:'Deutschland',rooms:7,food:7,bev:19,note:'Beherbergung 7 %, Speisen in der Gastronomie seit 1.1.2026 dauerhaft 7 % (Steueränderungsgesetz 2025), Getränke 19 %. Frühstück: Speisen 7 %, Getränke 19 %.',src:'https://www.bundestag.de/dokumente/textarchiv/2025/kw49-de-steueraenderungsgesetz-1128142'},
- IT:{n:'Italien',rooms:10,food:10,bev:10,note:'Alloggio 10 %, somministrazione di alimenti e bevande 10 %. Vermietung von Tagungsräumen 22 %.',src:'https://www.teamsystem.com/magazine/horeca/le-aliquote-iva-del-settore-alberghiero/'},
- HR:{n:'Kroatien',rooms:13,food:13,bev:13,note:'Beherbergung 13 %, Gastronomie 13 % ohne Alkohol; alkoholische Getränke 25 %.',src:'https://www.vatupdate.com/2026/02/14/croatia-comprehensive-vat-country-guide-2026/'},
- CH:{n:'Schweiz',rooms:3.8,food:8.1,bev:8.1,note:'Sondersatz Beherbergung 3,8 % (Frühstück im Logispreis inbegriffen), Restauration 8,1 %.',src:'https://spesen-app.ch/wiki/mwst-sondersatz-beherbergung-schweiz'},
- FR:{n:'Frankreich',rooms:10,food:10,bev:10,note:'Hébergement 10 %, restauration et boissons sans alcool 10 %, boissons alcoolisées 20 %.',src:'https://www.keobiz.fr/le-mag/tva-hotel/'},
- XX:{n:'Anderes Land',rooms:null,food:null,bev:null,note:'Keine Vorgabe hinterlegt – Sätze bitte manuell eintragen und prüfen.',src:''}
+ AT:{n:'Österreich',rooms:10,food:10,bev:20,note:'Beherbergung inkl. Frühstück 10 %, Speisen 10 %, Getränke in der Gastronomie 20 % (Leitungswasser/Milch 10 %).',vac:25,hol:13,abs:'Urlaub 5 Wochen = 25 Arbeitstage (UrlG), 13 gesetzliche Feiertage',src:'https://www.wko.at/steuern/ermaessigte-umsatzsteuer-saetze'},
+ DE:{n:'Deutschland',rooms:7,food:7,bev:19,note:'Beherbergung 7 %, Speisen in der Gastronomie seit 1.1.2026 dauerhaft 7 % (Steueränderungsgesetz 2025), Getränke 19 %. Frühstück: Speisen 7 %, Getränke 19 %.',vac:20,hol:9,abs:'Gesetzlicher Mindesturlaub 20 Arbeitstage (BUrlG, tariflich oft 25–30), 9 bundesweite Feiertage (je Bundesland bis 13)',src:'https://www.bundestag.de/dokumente/textarchiv/2025/kw49-de-steueraenderungsgesetz-1128142'},
+ IT:{n:'Italien',rooms:10,food:10,bev:10,note:'Alloggio 10 %, somministrazione di alimenti e bevande 10 %. Vermietung von Tagungsräumen 22 %.',vac:22,hol:12,abs:'CCNL Turismo 26 Ferientage auf 6-Tage-Woche ≈ 22 Arbeitstage, 12 Feiertage inkl. Patronatsfest',src:'https://www.teamsystem.com/magazine/horeca/le-aliquote-iva-del-settore-alberghiero/'},
+ HR:{n:'Kroatien',rooms:13,food:13,bev:13,note:'Beherbergung 13 %, Gastronomie 13 % ohne Alkohol; alkoholische Getränke 25 %.',vac:20,hol:14,abs:'Mindesturlaub 4 Wochen = 20 Arbeitstage, 14 gesetzliche Feiertage',src:'https://www.vatupdate.com/2026/02/14/croatia-comprehensive-vat-country-guide-2026/'},
+ CH:{n:'Schweiz',rooms:3.8,food:8.1,bev:8.1,note:'Sondersatz Beherbergung 3,8 % (Frühstück im Logispreis inbegriffen), Restauration 8,1 %.',vac:25,hol:6,abs:'L-GAV Gastgewerbe: 5 Wochen Ferien, 6 bezahlte Feiertage',src:'https://spesen-app.ch/wiki/mwst-sondersatz-beherbergung-schweiz'},
+ FR:{n:'Frankreich',rooms:10,food:10,bev:10,note:'Hébergement 10 %, restauration et boissons sans alcool 10 %, boissons alcoolisées 20 %.',vac:25,hol:11,abs:'Congés payés 5 semaines = 25 jours ouvrés, 11 jours fériés',src:'https://www.keobiz.fr/le-mag/tva-hotel/'},
+ XX:{n:'Anderes Land',rooms:null,food:null,bev:null,note:'Keine Vorgabe hinterlegt – Sätze bitte manuell eintragen und prüfen.',vac:25,hol:10,abs:'Keine Vorgabe hinterlegt – Werte bitte prüfen',src:''}
 };
 /* MwSt.-Prüfung: liefert Liste offener Punkte */
 function vatIssues(S){
@@ -320,7 +320,7 @@ const LS_KEY='mamu-pl-tool-v1';
 function meal(on,cap,ext,food,bev,turns){return {on,cap,ext,food,bev,turns}}
 function defaults(){
   return {
-    v:5, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
+    v:6, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
     p:{name:'Beispiel: Alpenresort 72 Keys',location:'Tirol',country:'AT',cls:'Upscale',type:'Resort',
        baseYear:2026,openYear:2028,stab:3,gfa:7000,spaArea:900},
     vat:{rooms:10,food:10,bev:20,checked:false,checkedFor:null,checkedAt:null},
@@ -355,6 +355,7 @@ function defaults(){
               {name:'E-Bike-Verleih',drv:'day',qty:6,price:45,amt:0,cos:5,exp:15}],
        miscPor:1.5,lease:0},
     st:{factor:1.36,salaries:14,workDays:5,season:null,meal:4.5,mealDays:220,
+        vac:25,hol:13,sick:5,
         hkAuto:true,rpa:13,hkSal:1900,
         pos:[
          ['Rooms','Front Office Manager',1,0,0,true,3400,'FY'],['Rooms','Rezeption',1,1,1,false,2300,'FY'],['Rooms','Night Audit',0,0,1,false,2400,'FY'],
@@ -379,6 +380,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const nz=v=>(isFinite(v)?v:0);
 const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
 
+/* Ausfallfaktor: Sollarbeitstage ÷ Anwesenheitstage (Urlaub, Feiertage, Krankenstand) */
+function absenceOf(S){const base=(+S.st.workDays||5)*52, off=(+S.st.vac||0)+(+S.st.hol||0)+(+S.st.sick||0), pres=Math.max(1,base-off);return {base,off,pres,f:base/pres}}
 function keysOf(S){return sum(S.r.types.map(t=>t.keys))}
 function openMonthsOf(S){return sum(S.cal.map((c,i)=>c.open?clamp(+c.days,0,MDAYS[i])/MDAYS[i]:0))}
 function seasonMonths(S){return S.st.season==null||S.st.season===''?Math.round(openMonthsOf(S)*10)/10:+S.st.season}
@@ -419,6 +422,7 @@ function computeYear(S,y,scen){
   const miceRoom=S.m.rooms.map(r=>({name:r.name,days:0,rev:0})); let miceAvail=0, spaRetail=0;
   let minibar=0, miceDays=0, miceDel=0, miceFood=0, miceBev=0, miceRent=0, miceIt=0, miceMisc=0, miceFull=0, miceHalf=0;
   let spaT=0,spaRev=0,spaLost=0,spaHours=0,spaUtilMax=0,spaCapT=0,dayG=0,entr=0,spaDays=0;
+  const absF=absenceOf(S).f;
   let hkFteY=0,hkFteOpen=0, oodDays=0;
   const monthly=[];
   S.cal.forEach((c,m)=>{
@@ -473,7 +477,7 @@ function computeYear(S,y,scen){
     spaRetail+=S.s.retailGuests*S.s.retailSpend*spd*pi;
     const dg=S.s.dayGuests*spF*spd; dayG+=dg; entr+=dg*S.s.fee*pi+gpd*S.s.hotelPaid/100*spd*S.s.hotelFee*pi;
     // Housekeeping auto
-    if(S.st.hkAuto&&S.st.rpa>0){const fte=(sd/d)/S.st.rpa*7/S.st.workDays; hkFteY+=fte*d/365; hkFteOpen+=fte*d}
+    if(S.st.hkAuto&&S.st.rpa>0){const fte=(sd/d)/S.st.rpa*7/S.st.workDays*absF; hkFteY+=fte*d/365; hkFteOpen+=fte*d}
     oodDays+=d;
   });
   const openMonths=openMonthsOf(S);
@@ -506,7 +510,7 @@ function computeYear(S,y,scen){
   const pay={}; DEPTS.forEach(([k])=>pay[k]={fte:0,fteY:0,wages:0,rel:0,contract:0,extra:0});
   const K={fte:0,fteY:0,wages:0,rel:0};
   S.st.pos.forEach(p=>{
-    const heads=(+p.e)+(+p.m)+(+p.l); const fte=(p.hf?heads:heads*7/S.st.workDays)*posPct(p); const mf=p.fs==='FY'?1:sm/12;
+    const heads=(+p.e)+(+p.m)+(+p.l); const fte=(p.hf?heads:heads*7/S.st.workDays*absF)*posPct(p); const mf=p.fs==='FY'?1:sm/12;
     const w=fte*p.sal*wi*S.st.salaries*mf; const P=pay[deptOf(p.dept)]; if(!P) return;
     const rel=w*(S.st.factor-1)+fte*mf*mealY;
     P.fte+=fte;P.fteY+=fte*mf;P.wages+=w;P.rel+=rel;
@@ -516,7 +520,7 @@ function computeYear(S,y,scen){
   R.hk={fteOpen:days?hkFteOpen/days:0,fteY:hkFteY};
   if(S.st.hkAuto){const w=hkFteY*S.st.hkSal*wi*S.st.salaries;pay.Rooms.fte+=R.hk.fteOpen;pay.Rooms.fteY+=hkFteY;pay.Rooms.wages+=w;pay.Rooms.rel+=w*(S.st.factor-1)+hkFteY*mealY}
   // Spa-Therapeut:innen aus Behandlungsstunden
-  const prodY=S.s.prodH*S.st.workDays*S.s.weeks; const thY=prodY?spaHours/prodY:0;
+  const prodY=S.s.prodH*absenceOf(S).pres; const thY=prodY?spaHours/prodY:0;
   R.spa.therFteY=thY; R.spa.therFteOpen=openMonths?thY*12/openMonths:0;
   {const w=thY*S.s.salary*wi*S.st.salaries;pay.Spa.fte+=R.spa.therFteOpen;pay.Spa.fteY+=thY;pay.Spa.wages+=w;pay.Spa.rel+=w*(S.st.factor-1)+thY*mealY;pay.Spa.extra=spaRev*S.s.comm/100}
   pay.Rooms.contract=S.r.exp.contract*sold*ci;
@@ -596,7 +600,9 @@ function migrate(o){const vIn=o.v;const hadBev=!!(o.vat&&o.vat.bev!=null);const 
     o.m.rooms.forEach(r=>{if(r.rentHalf==null)r.rentHalf=Math.round((+r.rent||0)*0.6);if(!Array.isArray(r.half))r.half=o.cal.map(()=>0)});
     o.v=4;
   }
-  if(!(vIn>=5)){(o.st.pos||[]).forEach(p=>{if(p.dept==='F&B'&&/koch|köch|küche|chef de partie|sous ?chef|commis|abwasch|steward|pâtiss|patiss|executive chef|garde manger|butcher|baker|prep cook|line cook/i.test(p.pos))p.dept='Küche'});o.v=5}
+  if(!(vIn>=6)){const P=VATP[o.p.country]||VATP.XX;if(o.st.vac==null||vIn<6){o.st.vac=P.vac;o.st.hol=P.hol;if(o.st.sick==null)o.st.sick=5}}
+  if(!(vIn>=5)){(o.st.pos||[]).forEach(p=>{if(p.dept==='F&B'&&/koch|köch|küche|chef de partie|sous ?chef|commis|abwasch|steward|pâtiss|patiss|executive chef|garde manger|butcher|baker|prep cook|line cook/i.test(p.pos))p.dept='Küche'});o.v=Math.max(o.v||0,5)}
+  o.v=6;
   return o}
 let S=loadLS()||defaults();
 let RES=computeAll(S);
@@ -674,10 +680,12 @@ const CALC={
   slots:()=>`${spaSlots(S)} Slots / Raum / Tag · ${e0(S.s.rooms*spaSlots(S))} Behandlungen / Tag max.`,
   therFte:()=>e1(stab().spa.therFteOpen)+' FTE (Ø Saison)',
   oodRev:i=>{const x=stab().ood[i];return x?e0(x.rev):'–'},
-  posFte:i=>{const p=S.st.pos[i];const h=(+p.e)+(+p.m)+(+p.l);return e1((p.hf?h:h*7/S.st.workDays)*posPct(p))},
-  posCost:i=>{const p=S.st.pos[i],R=stab();const h=(+p.e)+(+p.m)+(+p.l);const fte=(p.hf?h:h*7/S.st.workDays)*posPct(p);const mf=p.fs==='FY'?1:seasonMonths(S)/12;
+  posFte:i=>{const p=S.st.pos[i];const h=(+p.e)+(+p.m)+(+p.l);return e1((p.hf?h:h*7/S.st.workDays*absenceOf(S).f)*posPct(p))},
+  posCost:i=>{const p=S.st.pos[i],R=stab();const h=(+p.e)+(+p.m)+(+p.l);const fte=(p.hf?h:h*7/S.st.workDays*absenceOf(S).f)*posPct(p);const mf=p.fs==='FY'?1:seasonMonths(S)/12;
     const w=fte*p.sal*R.wi*S.st.salaries*mf;return e0(w*S.st.factor+fte*mf*S.st.meal*S.st.mealDays*R.ci)},
   hkFte:()=>e1(stab().hk.fteOpen)+' FTE (Ø Saison)',
+  absInfo:()=>{const A=absenceOf(S);return `Sollarbeitstage ${e0(A.base)} − Abwesenheit ${e0(A.off)} = <b>${e0(A.pres)} Anwesenheitstage</b> · Ausfallfaktor <b>${NF2.format(A.f)}</b>`},
+  absPreset:()=>{const P=VATP[S.p.country]||VATP.XX;const d=(+S.st.vac!==P.vac||+S.st.hol!==P.hol);return `Vorgabe ${esc(P.n)}: ${P.vac} Urlaubstage, ${P.hol} Feiertage – ${esc(P.abs)}${d?' <button class="btn" type="button" data-act="absPreset" style="padding:3px 9px;margin-left:6px">Vorgabe übernehmen</button>':' <span class="pill good">✓ Vorgabe</span>'}`},
   seasonAuto:()=>e1(openMonthsOf(S)),
   rentFix:()=>e0(stab().rentFix)+' €',
   rentVar:()=>e0(stab().rentVar)+' €',
@@ -803,7 +811,7 @@ spa:()=>({t:'Spa & Wellness',lead:'Behandlungsumsatz aus der Nachfrage von Hotel
    ${NUM('s.hotelPaid','Hotelgäste mit Eintritt','% / Tag')}${NUM('s.hotelFee','Eintritt Hotelgäste','€ netto')}
    ${NUM('s.members','Mitglieder','Anzahl')}${NUM('s.memberFee','Mitgliedsbeitrag','€ / Monat')}${NUM('s.retailGuests','Retail-Käufer:innen','pro Tag')}${NUM('s.retailSpend','Ø Retail-Umsatz','€ netto / Kauf')}${NUM('s.other','Sonstiges (Kurse, Fitness)','€ p.a.')}</div>`)
  +block('sec-sther','Therapeut:innen','Werden automatisch in den Spa-Personalkosten erfasst, zusätzlich zu den Positionen im Stellenplan.',
-   `<div class="grid">${NUM('s.prodH','Produktive Stunden','h / Arbeitstag')}${NUM('s.weeks','Arbeitswochen','p.a.')}${NUM('s.salary','Gehalt brutto','€ / Monat')}${NUM('s.comm','Provision','% Behandl.')}</div>
+   `<div class="grid">${NUM('s.prodH','Produktive Stunden','h / Arbeitstag')}${NUM('s.salary','Gehalt brutto','€ / Monat')}${NUM('s.comm','Provision','% Behandl.')}</div>
    <p class="hint" style="margin-top:12px">Bedarf stabilisiertes Jahr: <b>${calc('therFte')}</b></p>`)
  +block('sec-sexp','Spa – Kosten','',`<div class="grid">${NUM('s.exp.product','Behandlungsprodukte','% Behandl.')}${NUM('s.exp.retail','Wareneinsatz Retail','% Retail')}${NUM('s.exp.linen','Wäsche & Linen','€ / Besuch')}${NUM('s.exp.supplies','Betriebsmittel','% Spa')}${NUM('s.exp.other','Sonstiger Spa-Aufwand','% Spa')}</div>`)}),
 
@@ -819,7 +827,12 @@ personal:()=>({t:'Personal',lead:'Stellenplan je Abteilung mit Schichtbesetzung.
  html:block('sec-stp','Parameter','FY = Full Year: Ganzjahreskraft, beschäftigt über 12 Monate (Kosten = 14 Gehälter). S = Saisonkraft: nur in den Saisonmonaten beschäftigt (Kosten = 14 Gehälter × Saisonmonate ÷ 12). Saisonmonate leer = Betriebsmonate laut Kalender.',
    `<div class="grid">${NUM('st.factor','Lohnnebenkosten-Faktor','× Brutto')}${NUM('st.salaries','Gehälter p.a.','Anzahl')}${NUM('st.workDays','Arbeitstage','Tage/Wo.')}
    ${NUM('st.season','Saisonmonate','Monate',{nul:1,tip:'Leer lassen = automatisch aus den Betriebsmonaten'})}${NUM('st.meal','Personalessen','€ / Tag')}${NUM('st.mealDays','Personalessen-Tage','p.a.')}</div>
-   <p class="hint" style="margin-top:12px">Betriebsmonate laut Kalender: ${calc('seasonAuto')}</p>`)
+   <p class="hint" style="margin-top:12px">Betriebsmonate laut Kalender: ${calc('seasonAuto')}</p>
+   <h3 style="font-family:var(--sub);font-size:13px;margin:18px 0 4px">Abwesenheiten & Ausfallfaktor</h3>
+   <p class="hint" style="margin:0 0 10px">Urlaub, Feiertage und Krankenstand je Vollzeitkraft in Arbeitstagen. Der Ausfallfaktor erhöht die FTE aller Schichtpositionen, der automatischen Zimmerreinigung und senkt die produktive Zeit der Therapeut:innen. Positionen mit „Kopf = FTE“ bleiben ohne Vertretung.</p>
+   <div class="grid row" style="--n:4">${NUM('st.vac','Urlaubstage','Tage p.a.')}${NUM('st.hol','Feiertage','Tage p.a.')}${NUM('st.sick','Krankheitstage','Tage p.a.')}<div></div></div>
+   <p class="hint" style="margin-top:10px">${calc('absPreset')}</p>
+   <p class="hint" style="margin-top:4px">${calc('absInfo')}</p>`)
  +block('sec-hk','Zimmerreinigung automatisch','Room Attendants aus belegten Zimmern pro Tag ÷ Zimmer je Mitarbeiter:in. Alternativ Fremdreinigung unter Preise & Rooms-Kosten.',
    `<div class="grid">${`<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('st.hkAuto','automatisch berechnen',{rr:1})}</div>`}${S.st.hkAuto?NUM('st.rpa','Zimmer je Room Attendant','Zi. / Tag')+NUM('st.hkSal','Gehalt brutto','€ / Monat'):''}</div>
    ${S.st.hkAuto?`<p class="hint" style="margin-top:12px">Bedarf stabilisiertes Jahr: <b>${calc('hkFte')}</b></p>`:''}`)
@@ -1130,7 +1143,7 @@ function applyInput(el,isChange){
   else v=el.value;
   {const mm=p.match(/^cal\.(\d+)\.days$/);if(mm&&t==='n'&&v!=null){const mx=MDAYS[+mm[1]];if(v>mx||v<0){v=clamp(v,0,mx);if(isChange||v===mx){el.value=v;toast(`${MONTHS[+mm[1]]} hat maximal ${mx} Tage`)}}}}
   if(!ui.prev)ui.prev=stab(); setP(p,v);
-  if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
+  if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}if(vp&&vp.vac!=null){S.st.vac=vp.vac;S.st.hol=vp.hol}S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
   if(/^vat\.(rooms|food|bev)$/.test(p)){S.vat.checked=false}
   if(p==='p.stab'){ui.dy=null}
   recalc();
@@ -1156,6 +1169,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.scen){ui.prev=stab();S.scen=b.dataset.scen;RES=computeAll(S);saveLS();renderStep(true);renderScenSeg();toast('Szenario '+S.scen);return}
   if(b.id==='btnXlsF'||b.id==='btnXlsV'){makeXlsx(b.id==='btnXlsF');return}
   if(b.dataset.act==='vatPreset'){const P=VATP[S.p.country];if(P&&P.rooms!=null){S.vat.rooms=P.rooms;S.vat.food=P.food;S.vat.bev=P.bev;S.vat.checked=false}RES=computeAll(S);saveLS();renderStep(true);return}
+  if(b.dataset.act==='absPreset'){const P=VATP[S.p.country]||VATP.XX;S.st.vac=P.vac;S.st.hol=P.hol;RES=computeAll(S);saveLS();renderStep(true);return}
   if(b.dataset.act==='vatOk'){S.vat.checked=true;S.vat.checkedFor=S.p.country;S.vat.checkedAt=new Date().toLocaleDateString('de-AT');saveLS();renderStep(true);toast('MwSt.-Sätze bestätigt');return}
   if(b.dataset.act==='vatUndo'){S.vat.checked=false;saveLS();renderStep(true);return}
   if(b.dataset.act==='add'){const arr=get(b.dataset.arr);arr.push(TEMPL[b.dataset.arr]());RES=computeAll(S);saveLS();renderStep(true);return}
@@ -1301,7 +1315,7 @@ async function makePdf(){
     ['F&B',S.f.outlets.map(o=>`${o.name} (${o.seats} Pl.)`).join(', ')+` · Wareneinsatz F ${e1(S.f.exp.food)} % / B ${e1(S.f.exp.bev)} %`],
     ['MICE',`${S.m.rooms.length} Räume · Ganztag F ${e0(S.m.pk.full.food)} / B ${e0(S.m.pk.full.bev)} / IT ${e0(S.m.pk.full.it)} / Misc ${e0(S.m.pk.full.misc)} € + Raum · Halbtag F ${e0(S.m.pk.half.food)} / B ${e0(S.m.pk.half.bev)} / IT ${e0(S.m.pk.half.it)} / Misc ${e0(S.m.pk.half.misc)} € + Raum · Ø Raumbelegung ${pc(R.mice.util)} · ${e0(S.m.banq.events)} Bankette p.a.`],
     ['Spa',`${S.s.rooms} Behandlungsräume · Ø ${e0(S.s.price)} € · Capture ${e1(S.s.cap)} % · ${S.s.members} Mitglieder`],
-    ['Personal',`Faktor ${NF2.format(S.st.factor)} · ${S.st.salaries} Gehälter · Saisonmonate ${e1(seasonMonths(S))}`],
+    ['Personal',`Faktor ${NF2.format(S.st.factor)} · ${S.st.salaries} Gehälter · Saisonmonate ${e1(seasonMonths(S))} · Urlaub ${S.st.vac} / Feiertage ${S.st.hol} / Krank ${S.st.sick} Tage · Ausfallfaktor ${NF2.format(absenceOf(S).f)}`],
     ['Management Fees',`Base ${e1(S.u.base)} % Umsatz · Incentive ${e1(S.u.inc)} % AGOP`],
     ['Pacht',({none:'keine',fix:`Fix ${e0(S.n.rentKey)} € / Key / Monat`,var:`Umsatz ${e1(S.n.rentRooms)} % Rooms / ${e1(S.n.rentOther)} % übrige`,max:`Max. aus Fix ${e0(S.n.rentKey)} € / Key / Monat und ${e1(S.n.rentRooms)} % / ${e1(S.n.rentOther)} %`})[S.n.rentMode]],
     ['FF&E Reserve',S.proj.rows.map((r,i)=>`${yLabel(i+1)} ${e1(r.ffe)} %`).join(' · ')]
@@ -1372,6 +1386,7 @@ async function makeXlsx(withF){
    ['pomPct','POM Aufwand','POM',S.u.pomPct/100,'pct'],['pomKey','Wartungsverträge','POM',S.u.pomKey,'€ / Key p.a.'],
    ['gfa','Bruttogeschossfläche','Utilities',S.p.gfa,'m²'],['utM2','Energie Grundlast','Utilities',S.u.utM2,'€ / m² BGF'],['spaArea','Spa-Fläche','Utilities',S.p.spaArea,'m²'],['utSpa','Zuschlag Spa','Utilities',S.u.utSpa,'€ / m² Spa'],['utPor','Variabler Anteil','Utilities',S.u.utPor,'€ / POR'],
    ['vatR','MwSt. Beherbergung ('+(VATP[S.p.country]?.n||'')+(vatIssues(S).length?', Prüfung offen':', geprüft '+S.vat.checkedAt)+')','MwSt.',S.vat.rooms/100,'pct'],['vatF','MwSt. Speisen','MwSt.',S.vat.food/100,'pct'],['vatB','MwSt. Getränke','MwSt.',S.vat.bev/100,'pct'],
+   ['absV','Urlaubstage je VZ-Kraft','Personal',+S.st.vac,'Tage p.a.'],['absH','Feiertage','Personal',+S.st.hol,'Tage p.a.'],['absS','Krankheitstage','Personal',+S.st.sick,'Tage p.a.'],['absF','Ausfallfaktor (in FTE enthalten)','Personal',absenceOf(S).f,'Faktor'],
    ['base','Base Fee','Fees',S.u.base/100,'pct'],['inc','Incentive Fee (AGOP)','Fees',S.u.inc/100,'pct'],
    ['income','Non-Operating Income','Non-Op',S.n.income,'€ p.a.'],['rentMode','Pachtmodell (keine / fix / umsatz / max)','Non-Op',RM[S.n.rentMode],'txt'],
    ['rentKey','Fixpacht','Non-Op',S.n.rentKey,'€ / Key / Monat'],['rentRooms','Umsatzpacht Rooms','Non-Op',S.n.rentRooms/100,'pct'],['rentOther','Umsatzpacht übrige','Non-Op',S.n.rentOther/100,'pct'],
