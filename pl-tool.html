@@ -280,6 +280,42 @@ table.u td.neg{color:var(--bad)}
   table.u td:first-child{min-width:0}
   .lnk::after{display:none}
 }
+
+/* Finanzierung */
+.varbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;margin-bottom:18px;font-size:13px}
+.varbar .btn{padding:6px 12px}
+.flights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 18px}
+.flight{border:1px solid var(--line);border-left:4px solid var(--line-2);border-radius:6px;padding:12px 14px;background:var(--surface);min-width:0}
+.flight.good{border-left-color:var(--good)}.flight.warn{border-left-color:var(--warn)}.flight.bad{border-left-color:var(--bad)}
+.flight small{display:block;font-family:var(--sub);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.flight strong{display:block;font-family:var(--fig);font-size:26px;font-weight:600;color:var(--num);margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.flight p{margin:8px 0 0;font-size:12px;color:var(--ink-2);line-height:1.45}
+.fcharts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0 6px}
+.fchart{min-width:0;border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--surface)}
+.fchart h4{font-family:var(--sub);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 6px}
+.fchart .hint{font-size:11.5px;color:var(--ink-3);margin:4px 0 0}
+.lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--ink-2);margin-bottom:4px}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--ink)}
+.sw.bar{height:10px;width:8px;background:var(--olive)}
+.sw.dash{background:repeating-linear-gradient(90deg,var(--ink) 0 5px,transparent 5px 8px)}
+.fh3{font-family:var(--sub);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:22px 0 8px}
+.fsub{font-family:var(--sub);font-size:13px;margin:18px 0 6px}
+.fsum{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+table.ftab td,table.ftab th{font-variant-numeric:tabular-nums;padding-left:5px;padding-right:5px}
+table.ftab{font-size:12.5px}
+table.ftab .sub2{display:block;font-size:10.5px;color:var(--ink-3);font-weight:400}
+table.ftab tr.y0 td{font-size:12px;color:var(--ink-2)}
+table.ftab td.neg{color:var(--bad)}
+table.ftab tr.y0 td{background:var(--key)}
+table.ftab tr.paid td{border-bottom:2px solid var(--accent)}
+.th2{font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-3);font-size:10.5px}
+.kvline{font-size:13px;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px}
+.calcv{padding:7px 0;font-family:var(--fig);font-size:15px;color:var(--num)}
+@media (max-width:900px){.flights,.fcharts{grid-template-columns:1fr}}
+.seashead{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:end;margin-bottom:10px}
+.seasmeta{font-size:12.5px;line-height:1.5;padding-bottom:6px;min-width:0}
 </style>
 </head><body>
 
@@ -339,14 +375,15 @@ function deptList(S){
 }
 const DEPTS=[['Rooms','Rooms'],['F&B','Food & Beverage'],['Spa','Spa'],['OOD','Other Operated Dept.'],['A&G','Administrative & General'],['IT','Information & Telecom. Systems'],['S&M','Sales & Marketing'],['POM','Property Operation & Maintenance']];
 const VAT_STAND='2026-09';
+const CIT_SRC='Gesamtsteuersatz auf Unternehmensgewinne 2026 laut Tax Foundation (inkl. Gewerbe-, Regional- bzw. Kantonssteuer im Durchschnitt)';
 const VATP={
- AT:{n:'Österreich',rooms:10,food:10,bev:20,note:'Beherbergung inkl. Frühstück 10 %, Speisen 10 %, Getränke in der Gastronomie 20 % (Leitungswasser/Milch 10 %).',vac:25,hol:13,abs:'Urlaub 5 Wochen = 25 Arbeitstage (UrlG), 13 gesetzliche Feiertage',src:'https://www.wko.at/steuern/ermaessigte-umsatzsteuer-saetze'},
- DE:{n:'Deutschland',rooms:7,food:7,bev:19,note:'Beherbergung 7 %, Speisen in der Gastronomie seit 1.1.2026 dauerhaft 7 % (Steueränderungsgesetz 2025), Getränke 19 %. Frühstück: Speisen 7 %, Getränke 19 %.',vac:20,hol:9,abs:'Gesetzlicher Mindesturlaub 20 Arbeitstage (BUrlG, tariflich oft 25–30), 9 bundesweite Feiertage (je Bundesland bis 13)',src:'https://www.bundestag.de/dokumente/textarchiv/2025/kw49-de-steueraenderungsgesetz-1128142'},
- IT:{n:'Italien',rooms:10,food:10,bev:10,note:'Alloggio 10 %, somministrazione di alimenti e bevande 10 %. Vermietung von Tagungsräumen 22 %.',vac:22,hol:12,abs:'CCNL Turismo 26 Ferientage auf 6-Tage-Woche ≈ 22 Arbeitstage, 12 Feiertage inkl. Patronatsfest',src:'https://www.teamsystem.com/magazine/horeca/le-aliquote-iva-del-settore-alberghiero/'},
- HR:{n:'Kroatien',rooms:13,food:13,bev:13,note:'Beherbergung 13 %, Gastronomie 13 % ohne Alkohol; alkoholische Getränke 25 %.',vac:20,hol:14,abs:'Mindesturlaub 4 Wochen = 20 Arbeitstage, 14 gesetzliche Feiertage',src:'https://www.vatupdate.com/2026/02/14/croatia-comprehensive-vat-country-guide-2026/'},
- CH:{n:'Schweiz',rooms:3.8,food:8.1,bev:8.1,note:'Sondersatz Beherbergung 3,8 % (Frühstück im Logispreis inbegriffen), Restauration 8,1 %.',vac:25,hol:6,abs:'L-GAV Gastgewerbe: 5 Wochen Ferien, 6 bezahlte Feiertage',src:'https://spesen-app.ch/wiki/mwst-sondersatz-beherbergung-schweiz'},
- FR:{n:'Frankreich',rooms:10,food:10,bev:10,note:'Hébergement 10 %, restauration et boissons sans alcool 10 %, boissons alcoolisées 20 %.',vac:25,hol:11,abs:'Congés payés 5 semaines = 25 jours ouvrés, 11 jours fériés',src:'https://www.keobiz.fr/le-mag/tva-hotel/'},
- XX:{n:'Anderes Land',rooms:null,food:null,bev:null,note:'Keine Vorgabe hinterlegt – Sätze bitte manuell eintragen und prüfen.',vac:25,hol:10,abs:'Keine Vorgabe hinterlegt – Werte bitte prüfen',src:''}
+ AT:{n:'Österreich',cit:23,rooms:10,food:10,bev:20,note:'Beherbergung inkl. Frühstück 10 %, Speisen 10 %, Getränke in der Gastronomie 20 % (Leitungswasser/Milch 10 %).',vac:25,hol:13,abs:'Urlaub 5 Wochen = 25 Arbeitstage (UrlG), 13 gesetzliche Feiertage',src:'https://www.wko.at/steuern/ermaessigte-umsatzsteuer-saetze'},
+ DE:{n:'Deutschland',cit:30.1,rooms:7,food:7,bev:19,note:'Beherbergung 7 %, Speisen in der Gastronomie seit 1.1.2026 dauerhaft 7 % (Steueränderungsgesetz 2025), Getränke 19 %. Frühstück: Speisen 7 %, Getränke 19 %.',vac:20,hol:9,abs:'Gesetzlicher Mindesturlaub 20 Arbeitstage (BUrlG, tariflich oft 25–30), 9 bundesweite Feiertage (je Bundesland bis 13)',src:'https://www.bundestag.de/dokumente/textarchiv/2025/kw49-de-steueraenderungsgesetz-1128142'},
+ IT:{n:'Italien',cit:27.8,rooms:10,food:10,bev:10,note:'Alloggio 10 %, somministrazione di alimenti e bevande 10 %. Vermietung von Tagungsräumen 22 %.',vac:22,hol:12,abs:'CCNL Turismo 26 Ferientage auf 6-Tage-Woche ≈ 22 Arbeitstage, 12 Feiertage inkl. Patronatsfest',src:'https://www.teamsystem.com/magazine/horeca/le-aliquote-iva-del-settore-alberghiero/'},
+ HR:{n:'Kroatien',cit:18,rooms:13,food:13,bev:13,note:'Beherbergung 13 %, Gastronomie 13 % ohne Alkohol; alkoholische Getränke 25 %.',vac:20,hol:14,abs:'Mindesturlaub 4 Wochen = 20 Arbeitstage, 14 gesetzliche Feiertage',src:'https://www.vatupdate.com/2026/02/14/croatia-comprehensive-vat-country-guide-2026/'},
+ CH:{n:'Schweiz',cit:19.6,rooms:3.8,food:8.1,bev:8.1,note:'Sondersatz Beherbergung 3,8 % (Frühstück im Logispreis inbegriffen), Restauration 8,1 %.',vac:25,hol:6,abs:'L-GAV Gastgewerbe: 5 Wochen Ferien, 6 bezahlte Feiertage',src:'https://spesen-app.ch/wiki/mwst-sondersatz-beherbergung-schweiz'},
+ FR:{n:'Frankreich',cit:25.8,rooms:10,food:10,bev:10,note:'Hébergement 10 %, restauration et boissons sans alcool 10 %, boissons alcoolisées 20 %.',vac:25,hol:11,abs:'Congés payés 5 semaines = 25 jours ouvrés, 11 jours fériés',src:'https://www.keobiz.fr/le-mag/tva-hotel/'},
+ XX:{n:'Anderes Land',cit:25,rooms:null,food:null,bev:null,note:'Keine Vorgabe hinterlegt – Sätze bitte manuell eintragen und prüfen.',vac:25,hol:10,abs:'Keine Vorgabe hinterlegt – Werte bitte prüfen',src:''}
 };
 /* MwSt.-Prüfung: liefert Liste offener Punkte */
 function vatIssues(S){
@@ -357,14 +394,31 @@ function vatIssues(S){
   if(age>12)out.push({k:'age',msg:`Hinterlegte Vorgaben sind älter als 12 Monate (Stand ${mo}/${y}) – aktuelle Sätze prüfen`});
   return out;
 }
+const OPKEYS=['sc','p','vat','idx','cal','r','f','m','s','o','st','u','n','proj'];
+function pickOp(o){const t={};OPKEYS.forEach(k=>{if(o[k]!==undefined)t[k]=JSON.parse(JSON.stringify(o[k]))});return t}
+const afaGuess=n=>/ff&?e|einricht|möbel|ausstatt|os&?e/i.test(n||'')?8:/pre.?open|marketing|eröffn/i.test(n||'')?1:25;
+/* Ertragsteuer je Land / Region, Stand 2026 */
+const CH_CANTONS=[['AG','Aargau',15.03],['AI','Appenzell Innerrhoden',12.66],['AR','Appenzell Ausserrhoden',13.04],['BE','Bern',20.54],['BL','Basel-Landschaft',13.45],['BS','Basel-Stadt',13.04],['FR','Freiburg',13.87],['GE','Genf',14.70],['GL','Glarus',12.32],['GR','Graubünden',14.77],['JU','Jura',16.00],['LU','Luzern',11.90],['NE','Neuenburg',14.89],['NW','Nidwalden',11.97],['OW','Obwalden',12.73],['SG','St. Gallen',14.29],['SH','Schaffhausen',15.08],['SO','Solothurn',15.29],['SZ','Schwyz',13.45],['TG','Thurgau',13.21],['TI','Tessin',19.32],['UR','Uri',12.63],['VD','Waadt',14.72],['VS','Wallis',17.10],['ZG','Zug',11.85],['ZH','Zürich',19.59]];
+const DE_KST=cal=>cal<=2027?15:cal>=2032?10:15-(cal-2027);
+/* liefert {rate in %, txt} für ein Kalenderjahr; rev = Umsatz der Gesellschaft (für Kroatien) */
+function citRate(S,cal,rev){const T=S.fin.tax, c=S.p.country;
+  if(T.manual)return {rate:+T.rate||0,txt:'manuell'};
+  if(c==='AT')return {rate:23,txt:'KöSt 23 %'};
+  if(c==='DE'){const k=DE_KST(cal),r=k*1.055+3.5*(+T.hebe||0)/100;return {rate:r,txt:`KSt ${k} % + Soli + GewSt (Hebesatz ${e0(T.hebe)} %)`}}
+  if(c==='CH'){const k=CH_CANTONS.find(x=>x[0]===T.canton)||CH_CANTONS[9];return {rate:k[2],txt:`Kanton ${k[1]}, effektiv inkl. Bund`}}
+  if(c==='IT')return {rate:24+(+T.irap||0),txt:`IRES 24 % + IRAP ${NF1.format(+T.irap||0)} %`};
+  if(c==='HR'){const small=rev<1e6;return {rate:small?10:18,txt:small?'10 % (Umsatz unter 1 Mio. €)':'18 % (Umsatz ab 1 Mio. €)'}}
+  if(c==='FR')return {rate:25,txt:'IS 25 %'};
+  return {rate:+T.rate||0,txt:'manuell (kein Land hinterlegt)'};
+}
 const LS_KEY='mamu-pl-tool-v1';
 
 function meal(on,cap,ext,food,bev,turns){return {on,cap,ext,food,bev,turns}}
 function defaults(){
   return {
-    v:7, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
+    v:9, var:'neu', alt:null, scen:'Base', sc:{High:{occ:5,adr:5,ext:10,cost:0},Low:{occ:-7,adr:-5,ext:-15,cost:3}},
     p:{name:'Beispiel: Alpenresort 72 Keys',location:'Tirol',country:'AT',cls:'Upscale',type:'Resort',
-       baseYear:2026,openYear:2028,stab:3,gfa:7000,spaArea:900},
+       baseYear:2026,openYear:2028,stab:3,gfa:7000,spaArea:900,seasReg:'',seasGeo:null},
     vat:{rooms:10,food:10,bev:20,checked:false,checkedFor:null,checkedAt:null},
     idx:{rev:2.5,cost:2.5,wage:0.5},
     cal:[['H',1,31],['H',1,28],['H',1,31],['M',1,30],['L',1,31],['M',1,30],['H',1,31],['H',1,31],['M',1,30],['L',1,31],['L',0,30],['H',1,31]]
@@ -417,6 +471,12 @@ function defaults(){
     u:{agPct:2.0,agFix:45000,cc:1.2,itPct:0.8,itKey:300,smPct:2.5,royR:0,royF:0,mkt:0,loy:0,
        pomPct:1.8,pomKey:350,utM2:22,utSpa:45,utPor:2.5,base:2.5,inc:8},
     n:{income:0,rentMode:'var',rentKey:600,rentRooms:25,rentOther:10,tax:0.4,ins:0.5,other:0.3,bldg:0},
+    fin:{type:'reno',struct:'owner',
+      costs:[{name:'Bau / Renovierung',amt:3200000,afa:25},{name:'FF&E',amt:1100000,afa:8},{name:'Planung & Nebenkosten',amt:450000,afa:25},{name:'Pre-Opening & Marketing',amt:150000,afa:1},{name:'Reserve / Unvorhergesehenes',amt:250000,afa:25}],
+      tax:{on:false,carry:true,manual:false,rate:23,hebe:438,canton:'GR',irap:3.9},
+      build:9,closed:4,partLoss:30,fixClosed:35000,idc:true,
+      ekPct:35,rate:4.5,term:20,mode:'free',freeYears:2,after:'ann',sweep:0,existDebt:0,dscrMin:1.25,horizon:20,
+      cmp:'A',ist:{year:2026,rev:7000000,ebitda:900000,res:3,rent:0,growth:2},altSrc:null,altName:null,altAt:null},
     proj:{rows:[{occ:-10,adr:-8,ext:-25,ffe:1},{occ:-5,adr:-4,ext:-10,ffe:2},{occ:0,adr:0,ext:0,ffe:3}]
           .concat(Array.from({length:7},()=>({occ:0,adr:0,ext:0,ffe:4})))}
   };
@@ -667,7 +727,10 @@ function migrate(o){const vIn=o.v;const hadBev=!!(o.vat&&o.vat.bev!=null);const 
       else if(d==='OOD')p.dept='OTHER';
     });
   }
-  o.v=7;
+  if(o.alt&&typeof o.alt==='object'){try{const a=migrate(Object.assign({},JSON.parse(JSON.stringify(o.alt)),{v:vIn,alt:null,fin:o.fin,var:'neu'}));o.alt=pickOp(a)}catch(e){o.alt=null}}
+  if(!o.alt||o.var!=='bestand')o.var='neu';
+  if(!(vIn>=9)&&o.fin){const P=VATP[o.p.country]||VATP.XX;o.fin.tax.rate=P.cit;(o.fin.costs||[]).forEach(c=>{if(c.afa==null)c.afa=afaGuess(c.name)})}
+  o.v=9;
   return o}
 let S=loadLS()||defaults();
 let RES=computeAll(S);
@@ -839,7 +902,8 @@ projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskal
    ${NUM('idx.rev','Preisindex Umsätze','% p.a.')}${NUM('idx.cost','Kostenindex','% p.a.')}${NUM('idx.wage','Reallohnzuwachs zusätzlich','% p.a.')}</div>`)
  +block('sec-vat','Umsatzsteuer · Prüfung','Die Sätze werden beim Landwechsel aus der hinterlegten Vorgabe übernommen. Jede Abweichung wird markiert; die Bestätigung gilt nur für das gewählte Land und wird bei jeder Änderung zurückgesetzt. Verwendet für den Brutto-Gegenwert der Zimmerpreise.',vatBlock())
  +block('sec-cal','Betriebskalender','Saison je Monat, geöffnet / geschlossen und Öffnungstage (für Teilmonate anpassen).',
-   `<div class="tw"><div class="cal">${S.cal.map((c,i)=>`<div class="mon${c.open?'':' closed'}"><div class="sw s-${c.season}"></div><b>${MONTHS[i]}</b>
+   `<h3 class="fsub" style="margin-top:4px">Saisonalität der Region</h3><div id="seasBox">${seasBoxHtml()}</div>
+   <h3 class="fsub">Kalender</h3><div class="tw"><div class="cal">${S.cal.map((c,i)=>`<div class="mon${c.open?'':' closed'}"><div class="sw s-${c.season}"></div><b>${MONTHS[i]}</b>
      ${cS(`cal.${i}.season`,SEASOPT,{rr:1,al:MONTHS[i]+' Saison'})}
      <label class="chk">${cB(`cal.${i}.open`,{rr:1,al:MONTHS[i]+' geöffnet'})} offen</label>
      ${c.open?`<small class="muted">Öffnungstage</small><div class="calday">${cN(`cal.${i}.days`,{al:MONTHS[i]+' Öffnungstage'})}<span>/ ${MDAYS[i]}</span></div>${calc('calOver',i)}`:'<span class="muted">geschlossen</span>'}</div>`).join('')}</div></div>
@@ -1007,7 +1071,7 @@ function renderNav(){
 }
 function renderScenSeg(){const el=$('#scenSeg');if(el)el.innerHTML=SCEN.map(k=>`<button type="button" data-scen="${k}" class="${(S.scen||'Base')===k?'on':''}">${k}</button>`).join('')}
 function renderStep(keepScroll){
-  renderScenSeg();
+  renderScenSeg(); ui.finC=null;
   const y=window.scrollY;
   $('#app').classList.toggle('result-mode',step==='ergebnis');
   if(step==='ergebnis'){renderResult();}
@@ -1020,14 +1084,16 @@ function renderStep(keepScroll){
       <div class="stepnav">${i>0?`<button class="btn" type="button" data-step="${STEPS[i-1][0]}">← ${esc(STEPS[i-1][1])}</button>`:'<span></span>'}
       ${i<STEPS.length-1?`<button class="btn primary" type="button" data-step="${STEPS[i+1][0]}">Weiter: ${esc(STEPS[i+1][1])} →</button>`:`<button class="btn primary" type="button" data-step="ergebnis">Zum USALI-Ergebnis →</button>`}</div>`;
   }
+  if(S.var==='bestand')$('#main').insertAdjacentHTML('afterbegin',varBanner());
+  if(step==='projekt')setTimeout(seasLookup,50);
   renderNav(); renderLive();
-  $('#projTitle').textContent=S.p.name||'P&L Tool';
+  $('#projTitle').textContent=(S.p.name||'P&L Tool')+(S.var==='bestand'?' · Bestand':'');
   if(keepScroll)window.scrollTo(0,y);
 }
 function renderLive(){
   const R=stab(), P=ui.prev;
   const d=(k)=>{if(!P||P[k]==null)return '';const v=R[k]-P[k];if(Math.abs(v)<1)return '';return `<span class="delta ${v>0?'up':'dn'}">${v>0?'+':''}${e0(v/1000)} T€</span>`};
-  $('#live').innerHTML=`<h3>Live-Ergebnis</h3><p class="yr">Szenario <b>${esc(S.scen||'Base')}</b> · stabilisiertes Jahr ${yLabel(S.p.stab)} · ${R.cal}</p>
+  $('#live').innerHTML=`<h3>Live-Ergebnis</h3>${S.var==='bestand'?'<p class="yr"><span class="pill warn">Bestand ohne Renovierung</span></p>':''}<p class="yr">Szenario <b>${esc(S.scen||'Base')}</b> · stabilisiertes Jahr ${yLabel(S.p.stab)} · ${R.cal}</p>
    <div class="lrow"><span>Belegung</span><b>${pc(R.occ)}</b></div>
    <div class="lrow"><span>ADR netto</span><b>${e0(R.adr)} €</b></div>
    <div class="lrow big"><span>Total Revenue</span><b>${e0(R.tr/1000)}<i>T€</i></b></div>
@@ -1172,6 +1238,7 @@ function renderResult(){
   <div class="stack">${schedule('Rooms','Rooms',R.roomsRev,D.rooms,R)}${schedule('Food & Beverage','F&B',R.fb.rev,D.fb,R)}${schedule('Spa','Spa',R.spa.rev,D.spa,R)}
    ${schedule('Other Operated Departments','OOD',R.oodRev,D.ood,R)}${schedule('Undistributed Operating Expenses','Revenue',R.tr,D.und,R)}</div>
   ${pay}
+  ${finResultSection()}
   <p class="note">Gliederung nach Uniform System of Accounts for the Lodging Industry (USALI), 11. Ausgabe. Franchise- und Markengebühren unter Sales & Marketing, Kreditkartengebühren unter A&G, Personalessen als Payroll-Related Expense der jeweiligen Abteilung. Frühstücks- bzw. Halbpensionsanteil im Zimmerpreis wird als F&B-Umsatz ausgewiesen.</p>`;
 }
 
@@ -1236,12 +1303,14 @@ document.addEventListener('keydown',e=>{const t=e.target;if(!(t.classList&&t.cla
 
 /* ================= Interaktion ================= */
 function recalc(){
-  RES=computeAll(S); saveLS();
+  RES=computeAll(S); saveLS(); ui.finC=null;
   refreshCalc(); renderLive();
+  const fo=$('#finOut'); if(fo) fo.innerHTML=finOutHtml();
+  if($('#seasBox')&&document.activeElement&&document.activeElement.id==='f-p-location')seasRefresh();
   const m=$('#modres'); if(m&&MODRES[step]) m.innerHTML=MODRES[step]();
   const vb=$('#vatBox'); if(vb) vb.innerHTML=vatBox();
   const oc=$('#occSvg'); if(oc&&!drag) oc.innerHTML=occInner();
-  $('#projTitle').textContent=S.p.name||'P&L Tool';
+  $('#projTitle').textContent=(S.p.name||'P&L Tool')+(S.var==='bestand'?' · Bestand':'');
 }
 function applyInput(el,isChange){
   const p=el.dataset.p,t=el.dataset.t;let v;
@@ -1250,7 +1319,7 @@ function applyInput(el,isChange){
   else v=el.value;
   {const mm=p.match(/^cal\.(\d+)\.days$/);if(mm&&t==='n'&&v!=null){const mx=MDAYS[+mm[1]];if(v>mx||v<0){v=clamp(v,0,mx);if(isChange||v===mx){el.value=v;toast(`${MONTHS[+mm[1]]} hat maximal ${mx} Tage`)}}}}
   if(!ui.prev)ui.prev=stab(); setP(p,v);
-  if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}if(vp&&vp.vac!=null){S.st.vac=vp.vac;S.st.hol=vp.hol}S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
+  if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}if(vp&&vp.vac!=null){S.st.vac=vp.vac;S.st.hol=vp.hol}if(vp&&vp.cit!=null&&S.fin)S.fin.tax.rate=vp.cit;S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
   if(/^vat\.(rooms|food|bev)$/.test(p)){S.vat.checked=false}
   if(p==='p.stab'){ui.dy=null}
   recalc();
@@ -1310,6 +1379,502 @@ async function saveFile(name,data,mime){
   const blob=data instanceof Blob?data:new Blob([data],{type:mime});const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Download gestartet: '+name);
 }
+
+/* ================= Finanzierung & Rückzahlung ================= */
+/* Planfall = Hotel nach Renovierung bzw. Neubau; Bestand = Hotel ohne Renovierung */
+function variantOf(which){
+  if((S.var||'neu')===which)return S;
+  if(!S.alt)return null;
+  return Object.assign({},S,S.alt);
+}
+function switchVariant(){
+  if(!S.alt){toast('Es gibt noch keine Bestandsvariante.');return}
+  const cur=pickOp(S);Object.assign(S,S.alt);S.alt=cur;S.var=S.var==='bestand'?'neu':'bestand';
+  ui.dy=null;ui.prev=null;RES=computeAll(S);saveLS();renderStep(false);window.scrollTo(0,0);
+  toast(S.var==='bestand'?'Sie bearbeiten jetzt den Bestand (ohne Renovierung)':'Zurück im Planfall (nach Renovierung)');
+}
+function varBanner(){
+  if(S.var!=='bestand')return '';
+  return `<div class="varbar"><span><b>Bestandsvariante</b> · Sie bearbeiten das Hotel <b>ohne Renovierung</b>. Alle Eingaben und das Ergebnis beziehen sich auf den Bestand.</span>
+    <button class="btn" type="button" data-fin="switch">Zurück zum Planfall</button></div>`;
+}
+const FTYPE=[['reno','Renovierung / Erweiterung'],['new','Neubau']];
+const FSTRUCT=[['owner','Eigentümer = Betreiber'],['propco','PropCo / OpCo (Pacht)']];
+const FMODE=[['ann','Annuität (gleiche Rate)'],['lin','Lineare Tilgung (sinkende Rate)'],['free','Tilgungsfreie Anlaufjahre']];
+const FCMP=[['A','A · Ist-Zahlen'],['B','B · Bestandsvariante im Tool'],['C','C · Projektdatei laden']];
+
+function finIrr(cf){
+  const npv=r=>cf.reduce((a,v,i)=>a+v/Math.pow(1+r,i),0);
+  let lo=-0.95,hi=1.5,fl=npv(lo),fh=npv(hi);if(!isFinite(fl)||!isFinite(fh)||fl*fh>0)return null;
+  for(let k=0;k<200;k++){const m=(lo+hi)/2,fm=npv(m);if(Math.abs(fm)<0.01)return m;if(fl*fm<0){hi=m;fh=fm}else{lo=m;fl=fm}}
+  return (lo+hi)/2;
+}
+/* Jahreswerte eines Varianten-Ergebnisses nach Kalenderjahr, außerhalb der 10 Jahre mit Umsatzindex fortgeschrieben */
+function serieOf(V,Rs,key){
+  const g=1+(+V.idx.rev||0)/100, first=Rs[0].cal, last=Rs[Rs.length-1].cal;
+  return cal=>{if(cal<first)return key(Rs[0])/Math.pow(g,first-cal);if(cal>last)return key(Rs[Rs.length-1])*Math.pow(g,cal-last);return key(Rs[cal-first])};
+}
+function finCompute(){
+  const F=S.fin, plan=variantOf('neu'), own=F.struct!=='propco', reno=F.type==='reno';
+  const warn=[];
+  const Rp=plan===S?RES:computeAll(plan,S.scen);
+  const kCF=own?(R=>R.ebitdaR+R.rent):(R=>R.rent);
+  const planCF=serieOf(plan,Rp,kCF), planRev=serieOf(plan,Rp,R=>R.tr), opco=serieOf(plan,Rp,R=>R.ebitdaR);
+  if(!own&&plan.n.rentMode==='none')warn.push(['Im Planfall ist keine Pacht hinterlegt. Für PropCo / OpCo bitte ein Pachtmodell festlegen.','nonop|sec-rent']);
+  // Bestand
+  let bestCF=()=>0, bestName='–', bestOk=true;
+  if(reno){
+    if(F.cmp==='A'){const I=F.ist,g=1+(+I.growth||0)/100;
+      const base=own?(+I.ebitda||0)-(+I.rev||0)*(+I.res||0)/100:(+I.rent||0);
+      bestCF=cal=>base*Math.pow(g,cal-(+I.year||cal));bestName='Ist-Zahlen '+I.year;
+      if(!own&&!(+I.rent>0))warn.push(['Für PropCo / OpCo fehlt die bisherige Pacht (Ist).','finanz|sec-fcmp'])}
+    else{const B=variantOf('bestand');
+      if(!B){bestOk=false;warn.push([F.cmp==='B'?'Noch keine Bestandsvariante angelegt.':'Noch keine Projektdatei für den Bestand geladen.','finanz|sec-fcmp'])}
+      else{const Rb=B===S?RES:computeAll(B,S.scen);bestCF=serieOf(B,Rb,kCF);bestName=F.cmp==='B'?'Bestandsvariante':'Datei '+(F.altName||'')}}
+  }
+  const cal0=(+plan.p.openYear)-1, H=clamp(Math.round(+F.horizon||20),5,40);
+  // Investition
+  const costs=sum(F.costs.map(c=>c.amt));
+  const b0=reno?bestCF(cal0):0, bm=Math.max(0,+F.build||0), cl=reno?clamp(+F.closed||0,0,bm||+F.closed||0):0;
+  const loss=reno?Math.max(0,b0)/12*(cl+Math.max(0,bm-cl)*clamp(+F.partLoss||0,0,100)/100)+(own?(+F.fixClosed||0)*cl:0):0;
+  const N0=costs+loss, e=clamp(+F.ekPct||0,0,100)/100, r=(+F.rate||0)/100, t=bm/12;
+  const den=1-(1-e)*r*t/2;
+  const L=F.idc&&den>0?N0*(1-e)/den:N0*(1-e);
+  const idc=F.idc?L*r*t/2:0, total=N0+idc, EK=total-L;
+  // Kreditplan
+  const term=Math.max(1,Math.round(+F.term||1));
+  const free=F.mode==='free'?clamp(Math.round(+F.freeYears||0),0,term-1):0;
+  const lin=F.mode==='lin'||(F.mode==='free'&&F.after==='lin');
+  const sw=clamp(+F.sweep||0,0,100)/100, ex=+F.existDebt||0, dmin=+F.dscrMin||1.2;
+  // Ertragsteuern: Abschreibung je Kostenposition, Bauzeitzinsen über die längste Dauer
+  const T=F.tax||{}, taxOn=!!T.on;
+  const afaL=F.costs.map(c=>({amt:+c.amt||0,n:Math.max(1,Math.round(+(c.afa!=null?c.afa:afaGuess(c.name))||1))}));
+  const nMax=Math.max(1,...afaL.map(a=>a.n)); afaL.push({amt:idc,n:nMax});
+  const afaOf=y=>sum(afaL.map(a=>y<=a.n?a.amt/a.n:0));
+  let carry=0, taxSum=0;
+  let bal=L,A=null,linP=null,cum=-EK,payback=null,paidOff=null;
+  const rows=[{y:0,cal:cal0,bal:L,loss,idc,ek:EK}];
+  const cfs=[-EK];
+  for(let y=1;y<=H;y++){
+    const cal=cal0+y, pc_=planCF(cal), bc=reno?bestCF(cal):0, mehr=pc_-bc;
+    const int=bal*r; let pr=0;
+    if(bal>0.5){
+      if(y<=free)pr=0;
+      else{
+        if(A==null&&linP==null){const n=Math.max(1,term-free);if(lin)linP=bal/n;else A=r?bal*r/(1-Math.pow(1+r,-n)):bal/n}
+        pr=lin?linP:A-int; if(y>=term)pr=bal; pr=clamp(pr,0,bal);
+      }
+    }
+    const ds=int+pr;
+    const afa=afaOf(y); let taxable=mehr-int-afa, tax=0;
+    const RT=citRate(plan,cal,own?planRev(cal):pc_), tr=clamp(RT.rate,0,60)/100;
+    if(taxOn){if(taxable<0){if(T.carry!==false)carry+=-taxable}else{const u=T.carry!==false?Math.min(carry,taxable):0;carry-=u;tax=(taxable-u)*tr}}
+    taxSum+=tax;
+    let surplus=mehr-ds-tax;
+    const extra=bal-pr>0.5?Math.min(bal-pr,Math.max(0,surplus)*sw):0;
+    surplus-=extra; bal=Math.max(0,bal-pr-extra);
+    if(bal<0.5&&paidOff==null&&L>0)paidOff=y;
+    const dscr=(ds+ex)>0.5?pc_/(ds+ex):null;
+    const prev=cum; cum+=surplus;
+    if(payback==null&&EK>0&&cum>=0&&surplus>0)payback=y-1+(-prev)/surplus;
+    rows.push({y,cal,plan:pc_,best:bc,mehr,int,pr,extra,ds,dscr,surplus,afa,taxable,tax,carry,taxRate:RT.rate,taxTxt:RT.txt,cum:cum+EK,bal,opco:own?null:opco(cal),rev:planRev(cal),total:pc_-ds-extra-ex});
+    cfs.push(surplus);
+  }
+  if(EK<=0)payback=0;
+  const loanRows=rows.filter(x=>x.y>0&&x.ds>0.5);
+  const dscrs=loanRows.map(x=>x.dscr).filter(v=>v!=null);
+  const minD=dscrs.length?Math.min(...dscrs):null;
+  const firstLow=loanRows.find(x=>x.dscr!=null&&x.dscr<dmin);
+  const irr=EK>0?finIrr(cfs):null;
+  const avgYield=EK>0?sum(rows.slice(1).map(x=>x.surplus))/H/EK:null;
+  return {taxOn,taxSum,own,reno,H,cal0,costs,loss,b0,idc,total,EK,L,rows,minD,firstLow,dmin,payback,paidOff,irr,avgYield,warn,bestName,bestOk,free,lin,term,
+    bal10:(rows[Math.min(10,H)]||{}).bal,planName:'Planfall'};
+}
+function FIN(){if(!ui.finC)ui.finC=finCompute();return ui.finC}
+
+/* ---------- Ampeln ---------- */
+function finLights(F){
+  const d=F.minD, dCls=d==null?'mute':d>=F.dmin?'good':d>=1?'warn':'bad';
+  const dTxt=d==null?'kein Kredit':d>=F.dmin?'Bank ist gedeckt':d>=1?'knapp – unter Bankvorgabe':'Rate nicht gedeckt';
+  const p=F.payback, pCls=p==null?'bad':p<=10?'good':p<=20?'warn':'bad';
+  const pTxt=p==null?`nicht innerhalb von ${F.H} Jahren`:p<=10?'schnell':p<=20?'mittelfristig':'lang';
+  if(!F.bestOk)return [['Reicht das Geld für die Bank?',d==null?'–':NF2.format(d)+'×',dCls,dTxt,'Deckung der Bankrate aus dem Cashflow des Planfalls.'],['Wann ist das Eigenkapital zurück?','–','mute','Bestand fehlt','Ohne Bestand lässt sich der Mehrertrag nicht berechnen.'],['Verzinsung des Eigenkapitals','–','mute','Bestand fehlt','Bitte zuerst den Bestand festlegen.']];
+  const i=F.irr, iCls=i==null?'mute':i>=.08?'good':i>=.04?'warn':'bad';
+  return [
+    ['Reicht das Geld für die Bank?',d==null?'–':NF2.format(d)+'×',dCls,dTxt,`Kleinste Deckung der Bankrate im Kreditzeitraum (Cashflow ÷ Bankrate). Vorgabe ${NF2.format(F.dmin)}×.${F.firstLow?` Erstmals unterschritten ${F.firstLow.cal}.`:''}`],
+    ['Wann ist das Eigenkapital zurück?',p==null?'> '+F.H+' J.':NF1.format(p)+' Jahre',pCls,pTxt,`Aus dem Mehrertrag nach Bankrate fließen ${e0(F.EK/1000)} T€ Eigenkapital zurück.`],
+    ['Verzinsung des Eigenkapitals',i==null?'–':pc(i),iCls,i==null?'nicht ermittelbar':i>=.08?'attraktiv':i>=.04?'mäßig':'gering',`Jährliche Rendite (IRR) über ${F.H} Jahre, ${F.taxOn?'nach Ertragsteuern, ':''}ohne Verkaufs- oder Restwert, also vorsichtig gerechnet.`]
+  ];
+}
+function finLightsHtml(F){
+  return `<div class="flights">${finLights(F).map(([t,v,c,s,h])=>`<div class="flight ${c}"><small>${t}</small><strong>${v}</strong><span class="pill ${c}">${s}</span><p>${h}</p></div>`).join('')}</div>`;
+}
+function finKv(F){
+  return kv([['Gesamtinvestition',e0(F.total/1000)+' T€'],['davon Eigenkapital',e0(F.EK/1000)+' T€'],['davon Kredit',e0(F.L/1000)+' T€'],
+    ...(F.reno?[['Ertragsausfall Bauphase',e0(F.loss/1000)+' T€']]:[]),['Bauzeitzinsen',e0(F.idc/1000)+' T€'],
+    ['Kredit getilgt',F.paidOff?`${F.cal0+F.paidOff} (J${F.paidOff})`:`Rest ${e0((F.rows[F.H].bal||0)/1000)} T€`],['Restschuld nach 10 Jahren',e0((F.bal10||0)/1000)+' T€'],
+    ['Ø Überschuss / Eigenkapital',F.avgYield==null?'–':pc(F.avgYield)],...(F.taxOn?[['Ertragsteuern gesamt',e0(F.taxSum/1000)+' T€']]:[])]);
+}
+
+/* ---------- Diagramme ---------- */
+function finCharts(F){
+  const rs=F.rows.slice(1), n=rs.length;
+  const W=520,H=230,pl=52,pr=14,pt=14,pb=28,bw=(W-pl-pr)/n;
+  const tick=(mx)=>{const raw=Math.max(1,mx)/4,mag=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,2.5,5,10].map(k=>k*mag).find(k=>k>=raw)};
+  const fmtM=v=>Math.abs(v)>=1e6?new Intl.NumberFormat('de-DE',{maximumFractionDigits:1}).format(v/1e6)+' Mio':e0(v/1000)+' T';
+  const xLab=(i,r)=>(n<=12||(n-1-i)%Math.ceil(n/10)===0)?`<text x="${pl+i*bw+bw/2}" y="${H-9}" text-anchor="middle" font-size="10" fill="var(--ink-3)">${r.cal}</text>`:'';
+  // Chart 1: Mehrertrag (Balken) vs Bankrate (Linie)
+  let mx=Math.max(1,...rs.map(r=>Math.max(r.mehr,r.ds+r.extra+r.tax))), mn=Math.min(0,...rs.map(r=>r.mehr));
+  let st=tick(mx-mn); mx=Math.ceil(mx/st)*st; mn=Math.floor(mn/st)*st;
+  let sc=v=>pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+  let g='';for(let v=mn;v<=mx+1;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${sc(v)}" y2="${sc(v)}" stroke="var(--line)" ${v===0?'stroke-width="1.2" stroke="var(--line-2)"':''}/><text x="${pl-6}" y="${sc(v)+3.5}" text-anchor="end" font-size="10" fill="var(--ink-3)">${fmtM(v)}</text>`;
+  const bars=rs.map((r,i)=>{const x=pl+i*bw+bw*.2,w=Math.max(1,bw*.6),y0=sc(0),y1=sc(r.mehr);
+    return `<rect x="${x}" y="${Math.min(y0,y1)}" width="${w}" height="${Math.max(.5,Math.abs(y1-y0))}" rx="2" fill="var(--olive)"><title>${r.cal}: Mehrertrag ${e0(r.mehr)} € · Bankrate ${e0(r.ds+r.extra+r.tax)} €</title></rect>${xLab(i,r)}`}).join('');
+  const pts=rs.map((r,i)=>`${pl+i*bw+bw/2},${sc(r.ds+r.extra+r.tax)}`).join(' ');
+  const dsl=`<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 3"/>`+rs.map((r,i)=>`<circle cx="${pl+i*bw+bw/2}" cy="${sc(r.ds+r.extra+r.tax)}" r="3" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.5"><title>${r.cal}: Bankrate ${e0(r.ds+r.extra+r.tax)} €</title></circle>`).join('');
+  const c1=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Mehrertrag und Bankrate je Jahr">${g}${bars}${dsl}</svg>`;
+  // Chart 2: Restschuld vs Eigenkapital zurück
+  mx=Math.max(1,F.L,F.EK,...rs.map(r=>r.cum)); mn=Math.min(0,...rs.map(r=>r.cum));
+  st=tick(mx-mn); mx=Math.ceil(mx/st)*st; mn=Math.floor(mn/st)*st; sc=v=>pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+  g='';for(let v=mn;v<=mx+1;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${sc(v)}" y2="${sc(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${sc(v)+3.5}" text-anchor="end" font-size="10" fill="var(--ink-3)">${fmtM(v)}</text>`;
+  const xs=i=>pl+i*bw+bw/2;
+  const lineOf=(k,c,lbl)=>`<polyline points="${rs.map((r,i)=>`${xs(i)},${sc(r[k])}`).join(' ')}" fill="none" stroke="${c}" stroke-width="2"/>`+rs.map((r,i)=>`<circle cx="${xs(i)}" cy="${sc(r[k])}" r="${n>20?2.2:3}" fill="${c}" stroke="var(--surface)" stroke-width="1.2"><title>${r.cal}: ${lbl} ${e0(r[k])} €</title></circle>`).join('');
+  const ekL=`<line x1="${pl}" x2="${W-pr}" y1="${sc(F.EK)}" y2="${sc(F.EK)}" stroke="var(--ink-3)" stroke-dasharray="3 3"/><text x="${W-pr}" y="${sc(F.EK)-5}" text-anchor="end" font-size="10" fill="var(--ink-2)">Eigenkapital ${e0(F.EK/1000)} T€</text>`;
+  const c2=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Restschuld und zurückgeflossenes Eigenkapital">${g}${ekL}${lineOf('bal','var(--accent)','Restschuld')}${lineOf('cum','var(--accent-2)','Eigenkapital zurück')}${rs.map((r,i)=>xLab(i,r)).join('')}</svg>`;
+  return `<div class="fcharts">
+   <div class="fchart"><h4>Mehrertrag und Bankrate${F.taxOn?' + Steuern':''} je Jahr</h4><div class="lg"><span><i class="sw bar"></i>Mehrertrag durch ${F.reno?'Renovierung':'das Projekt'}</span><span><i class="sw dash"></i>Bankrate (Zins + Tilgung)${F.taxOn?' + Steuern':''}</span></div>${c1}
+     <p class="hint">Liegt der Balken über der Linie, bleibt nach der Bankrate${F.taxOn?' und den Steuern':''} Geld für die Eigentümer übrig.</p></div>
+   <div class="fchart"><h4>Kredit und Eigenkapital über die Zeit</h4><div class="lg"><span><i class="sw" style="background:var(--accent)"></i>Restschuld Kredit</span><span><i class="sw" style="background:var(--accent-2)"></i>Eigenkapital zurück (kumuliert)</span></div>${c2}
+     <p class="hint">Erreicht die rötliche Linie die gestrichelte Eigenkapital-Linie, ist das eingesetzte Geld zurück.</p></div></div>`;
+}
+
+/* ---------- Jahrestabelle ---------- */
+function finTable(F,compact){
+  const dpill=v=>v==null?'<span class="muted">–</span>':`<span class="pill ${v>=F.dmin?'good':v>=1?'warn':'bad'}">${NF2.format(v)}×</span>`;
+  const rs=compact?F.rows.slice(0,Math.min(F.rows.length,16)):F.rows;
+  const lblCF=F.own?'Cashflow':'Pacht';
+  const r0=F.rows[0], nc=F.reno?9:8;
+  return `<div class="tw"><table class="t ftab"><thead><tr><th>Jahr</th>
+    <th title="${F.own?'EBITDA nach FF&E-Rücklage, vor Finanzierung':'Pachteinnahme der Eigentümergesellschaft'}">${lblCF}<br><span class="th2">Planfall</span></th>
+    ${F.reno?`<th>${lblCF}<br><span class="th2">ohne Renov.</span></th>`:''}<th>Mehr-<br>ertrag</th>
+    <th title="Zinsen + Tilgung inkl. Sondertilgung">Bankrate<br><span class="th2">Zins · Tilgung</span></th><th title="Deckung der Bankrate: Cashflow ÷ (Bankrate + bestehender Schuldendienst)">Deckung</th>
+    ${F.taxOn?'<th title="Ertragsteuer auf den Mehrgewinn (Mehrertrag − Zinsen − Abschreibung)">Steuern<br><span class="th2">Satz</span></th>':''}<th title="Mehrertrag minus Bankrate${F.taxOn?' minus Steuern':''}">Über-<br>schuss</th><th>EK zurück<br><span class="th2">kumuliert</span></th><th>Rest-<br>schuld</th>
+    ${F.own?'':'<th title="EBITDA der Betreibergesellschaft nach Pacht und Rücklage">OpCo<br><span class="th2">nach Pacht</span></th>'}</tr></thead><tbody>
+    <tr class="y0"><td>${r0.cal}</td><td colspan="${F.reno?5:4}" style="text-align:left">Bau · Investition ${e0(F.total)} € · Eigenkapital ${e0(F.EK)} €${F.reno?` · Ertragsausfall ${e0(F.loss)} €`:''}</td>
+      ${F.taxOn?'<td></td>':''}<td class="neg">−${e0(F.EK)}</td><td>0</td><td>${e0(F.L)}</td>${F.own?'':'<td></td>'}</tr>
+    ${rs.slice(1).map(r=>`<tr${r.y===F.paidOff?' class="paid"':''}><td>${r.cal}</td><td>${e0(r.plan)}</td>${F.reno?`<td>${e0(r.best)}</td>`:''}<td class="${r.mehr<0?'neg':''}">${e0(r.mehr)}</td>
+      <td><b>${e0(r.ds+r.extra)}</b><span class="sub2">${e0(r.int)} · ${e0(r.pr+r.extra)}${r.extra>0.5?' inkl. Sonder':''}</span></td><td>${dpill(r.dscr)}</td>
+      ${F.taxOn?`<td>${e0(r.tax)}<span class="sub2">${NF1.format(r.taxRate)} %${r.carry>0.5?' · Vortrag '+e0(r.carry/1000)+' T':''}</span></td>`:''}<td class="${r.surplus<0?'neg':''}">${e0(r.surplus)}</td><td>${e0(r.cum)}${F.payback!=null&&r.cum>=F.EK&&r.cum-r.surplus<F.EK?'<span class="sub2"><span class="pill good">zurück</span></span>':''}</td><td>${e0(r.bal)}</td>
+      ${F.own?'':`<td class="${r.opco<0?'neg':''}">${e0(r.opco)}</td>`}</tr>`).join('')}
+  </tbody></table></div>${compact&&F.rows.length>16?`<p class="note">Erste 15 Betriebsjahre. Vollständige Tabelle im Schritt <button type="button" class="lnk" data-step="finanz"><b>Finanzierung</b></button>.</p>`:''}`;
+}
+function finOutHtml(){
+  const F=FIN();
+  return `${F.warn.map(([w,go])=>`<div class="warnbox">${esc(w)} <button type="button" class="lnk" data-go="${go}"><b>Zur Eingabe</b></button></div>`).join('')}
+   ${finLightsHtml(F)}${finKv(F)}${finCharts(F)}
+   <h3 class="fh3">Jahr für Jahr</h3>${finTable(F,false)}
+   <p class="note">Werte in EUR, Szenario ${esc(S.scen||'Base')}. ${F.own?'Cashflow aus Betrieb = EBITDA nach FF&E-Rücklage; eine im P&L hinterlegte Pacht wird bei Eigentümer = Betreiber nicht abgezogen.':'PropCo erhält die Pacht laut P&L und bedient daraus den Kredit; die OpCo-Spalte zeigt, ob der Betreiber die Pacht tragen kann.'} Jahre nach dem 10. Betriebsjahr werden mit dem Umsatzindex fortgeschrieben. ${F.taxOn?'Ertragsteuern auf den Mehrgewinn mit Verlustvortrag; Deckung der Bankrate vor Steuern.':'Ohne Ertragsteuern.'}</p>`;
+}
+
+/* ---------- Eingabeschritt ---------- */
+STEPS.push(['finanz','Finanzierung & Rückzahlung']);
+TEMPL['fin.costs']=()=>({name:'Neue Position',amt:0,afa:10});
+function taxRegionInputs(){const c=S.p.country,T=S.fin.tax;if(T.manual)return '';
+  if(c==='DE')return NUM('fin.tax.hebe','Gewerbesteuer-Hebesatz','%',{tip:'Hebesatz der Gemeinde. Vorbelegt: Durchschnitt der Gemeinden ab 20.000 Einwohnern 2025 (DIHK): 438 %'});
+  if(c==='CH')return SEL('fin.tax.canton','Kanton',CH_CANTONS.map(k=>[k[0],k[1]+' · '+NF2.format(k[2])+' %']));
+  if(c==='IT')return NUM('fin.tax.irap','IRAP (regional)','%',{tip:'Regionale Wertschöpfungssteuer, Standard 3,9 %, je Region bis rund ±0,9 Prozentpunkte'});
+  return ''}
+Object.assign(CALC,{
+  finTaxInfo:()=>{const F=FIN(),P=VATP[S.p.country]||VATP.XX;const yrs=F.rows.slice(1);const groups=[];
+    yrs.forEach(r=>{const g=groups[groups.length-1];const k=NF1.format(r.taxRate)+' %';if(g&&g.k===k)g.to=r.cal;else groups.push({k,from:r.cal,to:r.cal,t:r.taxTxt})});
+    return `<b>${esc(P.n)}</b>: ${groups.map(g=>`${g.from}${g.to>g.from?'–'+g.to:''}: <b>${g.k}</b> (${esc(g.t)})`).join(' · ')}${S.p.country==='DE'&&!S.fin.tax.manual?' · Körperschaftsteuer sinkt ab 2028 jährlich um 1 Prozentpunkt auf 10 % ab 2032 (StInvSofortPG).':''}${S.p.country==='CH'&&!S.fin.tax.manual?' · Effektive Sätze 2025 im Kantonshauptort inkl. direkter Bundessteuer.':''}`},
+  finCosts:()=>e0(FIN().costs)+' €',
+  finLoss:()=>e0(FIN().loss)+' €',
+  finIdc:()=>e0(FIN().idc)+' €',
+  finTotal:()=>e0(FIN().total)+' €',
+  finEK:()=>e0(FIN().EK)+' €',
+  finL:()=>e0(FIN().L)+' €',
+  finB0:()=>{const F=FIN();return F.reno?`Bestand ${F.cal0}: ${e0(F.b0)} € ${F.own?'Cashflow':'Pacht'} p.a. (${esc(F.bestName)})`:''},
+  finIst:()=>{const I=S.fin.ist;const v=(+I.ebitda||0)-(+I.rev||0)*(+I.res||0)/100;return `Cashflow aus Betrieb Ist: ${e0(v)} € (EBITDA ${e0(I.ebitda)} € − Rücklage ${e0((+I.rev||0)*(+I.res||0)/100)} €)`},
+  finAlt:()=>{const F=S.fin;if(!S.alt)return '<span class="pill warn">noch nicht angelegt</span>';
+    return `<span class="pill good">vorhanden</span> ${F.altSrc==='C'?'aus Datei '+esc(F.altName||''):'kopiert aus Planfall'}${F.altAt?' · '+esc(F.altAt):''}`}
+});
+VIEWS.finanz=()=>{const F=S.fin, reno=F.type==='reno';
+  const cmpBody=F.cmp==='A'?`<div class="grid">${NUM('fin.ist.year','Ist-Jahr','Jahr')}${NUM('fin.ist.rev','Umsatz','€ p.a.')}${NUM('fin.ist.ebitda','EBITDA','€ p.a.',{tip:'Ergebnis vor Zinsen, Steuern und Abschreibungen laut Jahresabschluss bzw. Betriebsabrechnung'})}
+      ${NUM('fin.ist.res','FF&E-Rücklage','% Umsatz')}${F.struct==='propco'?NUM('fin.ist.rent','Bisherige Pacht','€ p.a.'):''}${NUM('fin.ist.growth','Entwicklung ohne Renovierung','% p.a.',{tip:'Zum Beispiel Inflation. Negativ, wenn das Haus ohne Investition an Wert und Preis verliert.'})}</div>
+      <p class="hint" style="margin-top:12px">${calc('finIst')}</p>`
+   :`<p class="hint" style="margin:0 0 10px">${F.cmp==='B'
+      ?'Die Bestandsvariante ist eine zweite, vollständige Eingabe im Tool. Kopieren Sie den Planfall und ändern Sie im Bestand nur, was ohne Renovierung anders ist (zum Beispiel niedrigere Preise, weniger Zimmer, kein Spa). Der Hochlauf wird beim Kopieren auf null gesetzt, weil das Haus bereits läuft.'
+      :'Laden Sie ein gesichertes Projekt (JSON) als Bestand, zum Beispiel eine frühere Berechnung des Hotels im heutigen Zustand. Danach können Sie den Bestand auch hier im Tool bearbeiten.'}</p>
+     <div class="kvline">Bestand: ${calc('finAlt')}</div>
+     <div class="btnrow">${F.cmp==='B'?(S.var==='bestand'?'':`<button class="btn" type="button" data-fin="copy">${S.alt?'Bestand neu aus Planfall kopieren (ersetzt)':'Planfall als Bestand kopieren'}</button>`)
+       :`<button class="btn" type="button" data-fin="file">${S.alt?'Andere Datei laden (ersetzt)':'Projektdatei laden'}</button><input type="file" id="finFile" accept=".json,application/json" hidden>`}
+       ${S.alt?`<button class="btn primary" type="button" data-fin="switch">${S.var==='bestand'?'Zurück zum Planfall':'Bestand bearbeiten'}</button>`:''}</div>`;
+  return {t:'Finanzierung & Rückzahlung',lead:'Wie viel kostet das Vorhaben, wie viel davon kommt aus Eigenkapital und Kredit, und trägt der Mehrertrag die Bankrate? Das P&L der vorigen Schritte ist der Planfall nach der Investition.',
+  html:block('sec-fart','Projektart & Struktur','Bei Eigentümer = Betreiber zahlt der Cashflow des Hotels die Bank. Bei PropCo / OpCo nimmt die Eigentümergesellschaft den Kredit auf und bedient ihn aus der Pacht des Betreibers.',
+     `<div class="grid">${SEL('fin.type','Projektart',FTYPE,{rr:1})}${SEL('fin.struct','Struktur',FSTRUCT,{rr:1})}</div>`)
+   +block('sec-fcap','Investition','Alle Kosten in Euro netto. Ertragsausfall und Bauzeitzinsen rechnet das Tool dazu, beide müssen ebenfalls finanziert werden.',
+     `<div class="tw"><table class="t"><thead><tr><th>Kostenposition</th><th>Betrag €</th>${F.tax.on?'<th title="Über wie viele Jahre die Position steuerlich abgeschrieben wird">Abschreibung<br><span class="th2">Jahre</span></th>':''}<th></th></tr></thead><tbody>
+      ${F.costs.map((c,i)=>`<tr><td>${cT(`fin.costs.${i}.name`,{al:'Kostenposition'})}</td><td>${cN(`fin.costs.${i}.amt`,{al:'Betrag'})}</td>${F.tax.on?`<td>${cN(`fin.costs.${i}.afa`,{al:'Abschreibung Jahre'})}</td>`:''}<td>${del('fin.costs',i)}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td>Summe Kosten</td><td>${calc('finCosts')}</td>${F.tax.on?'<td></td>':''}<td></td></tr></tfoot></table></div>${add('fin.costs','Kostenposition')}
+      <h3 class="fsub">Bauphase</h3>
+      <div class="grid">${NUM('fin.build','Bauzeit','Monate')}${reno?NUM('fin.closed','davon Hotel geschlossen','Monate')+NUM('fin.partLoss','Ertragsminderung im Teilbetrieb','%',{tip:'Um wie viel Prozent der Cashflow in den Baumonaten sinkt, in denen das Hotel geöffnet bleibt'})+(F.struct==='propco'?'':NUM('fin.fixClosed','Laufende Fixkosten bei Schließung','€ / Monat',{tip:'Kosten, die auch im geschlossenen Hotel weiterlaufen: Kernteam, Energie, Versicherung'})):''}
+        <div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.idc','Bauzeitzinsen mitfinanzieren')}</div></div>
+      ${reno?`<p class="hint" style="margin-top:10px">${calc('finB0')}</p>`:''}
+      <div class="fsum">${kv([['Kosten',calc('finCosts')],...(reno?[['Ertragsausfall Bauphase',calc('finLoss')]]:[]),['Bauzeitzinsen',calc('finIdc')],['Gesamtbedarf',calc('finTotal')]])}</div>`)
+   +(reno?block('sec-fcmp','Vergleich: Hotel ohne Renovierung','Der Erfolg der Renovierung ist der Unterschied zwischen Planfall und Bestand. Nur dieser Mehrertrag bezahlt die Investition.',
+     `<div class="grid">${SEL('fin.cmp','Bestand aus',FCMP,{rr:1})}</div><div style="margin-top:14px">${cmpBody}</div>`):'')
+   +block('sec-fkred','Finanzierung','Eigenkapital ist das eigene Geld der Eigentümer, der Rest kommt als Kredit von der Bank.',
+     `<div class="grid">${NUM('fin.ekPct','Eigenkapital','% des Gesamtbedarfs')}<label class="f"><span>Eigenkapital</span><div class="calcv">${calc('finEK')}</div></label><label class="f"><span>Kredit</span><div class="calcv">${calc('finL')}</div></label></div>
+      <h3 class="fsub">Kredit</h3>
+      <div class="grid">${NUM('fin.rate','Zinssatz','% p.a.')}${NUM('fin.term','Laufzeit','Jahre')}${SEL('fin.mode','Rückzahlung',FMODE,{rr:1})}
+        ${F.mode==='free'?NUM('fin.freeYears','Tilgungsfreie Jahre','Jahre',{tip:'In diesen Jahren werden nur Zinsen bezahlt'})+SEL('fin.after','Danach',[['ann','Annuität'],['lin','Linear']]):''}</div>
+      <p class="hint" style="margin-top:10px">${F.mode==='ann'?'Annuität: jedes Jahr die gleiche Rate. Anfangs ist der Zinsanteil hoch, später die Tilgung.':F.mode==='lin'?'Linear: jedes Jahr wird der gleiche Betrag getilgt. Die Rate ist am Anfang am höchsten und sinkt dann.':'Tilgungsfreie Anlaufjahre: In der Anlaufphase nach der Eröffnung nur Zinsen, danach Rückzahlung über die restliche Laufzeit.'}</p>
+      <h3 class="fsub">Weitere Annahmen</h3>
+      <div class="grid">${NUM('fin.sweep','Sondertilgung aus Überschüssen','% des Überschusses',{tip:'Dieser Anteil des jährlichen Überschusses geht zusätzlich an die Bank. Der Kredit ist dann früher getilgt.'})}
+        ${NUM('fin.existDebt','Bestehender Schuldendienst','€ p.a.',{tip:'Raten aus bereits laufenden Krediten. Senkt die Deckung, nicht den Mehrertrag.'})}
+        ${NUM('fin.dscrMin','Deckungsvorgabe der Bank','× Bankrate',{tip:'Üblich sind 1,2 bis 1,3: Der Cashflow soll die Rate um 20 bis 30 % übersteigen.'})}${NUM('fin.horizon','Betrachtungszeitraum','Jahre')}</div>`)
+   +block('sec-ftax','Ertragsteuern','Steuer auf den zusätzlichen Gewinn: Mehrertrag minus Zinsen minus Abschreibung, multipliziert mit dem Steuersatz. Der Steuersatz richtet sich automatisch nach dem Land aus Schritt 1 und gilt je Kalenderjahr.',
+     `<div style="margin-bottom:12px">${CHK('fin.tax.on','Ertragsteuern berücksichtigen',{rr:1})}</div>
+      ${F.tax.on?`<div class="grid">${taxRegionInputs()}<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.tax.carry','Verluste in Folgejahre vortragen')}</div>
+        <div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.tax.manual','Steuersatz manuell',{rr:1})}</div>${F.tax.manual||!VATP[S.p.country]||S.p.country==='XX'?NUM('fin.tax.rate','Steuersatz','%'):''}</div>
+        <p class="hint" style="margin-top:10px">${calc('finTaxInfo')}</p>
+        <p class="hint" style="margin-top:4px">Abschreibungsdauer je Kostenposition in der Tabelle unter Investition. Bauzeitzinsen werden über die längste Dauer abgeschrieben. Keine Steuerberatung: Bitte Sätze und Abschreibungsdauern im konkreten Projekt mit der Steuerberatung abstimmen.</p>`:''}`)
+   +`<section class="block fout" id="sec-fres"><h2>Ergebnis</h2><div id="finOut">${finOutHtml()}</div></section>`};
+};
+MODRES.finanz=()=>'';
+
+/* ---------- Ergebnisseite ---------- */
+function finResultSection(){
+  const F=FIN();
+  return `<div class="usali" id="finResult"><div class="usali-h"><h2>Finanzierung & Rückzahlung</h2><small>${F.reno?'Renovierung, Vergleich mit '+esc(F.bestName):'Neubau'} · ${F.own?'Eigentümer = Betreiber':'PropCo / OpCo'} · <button type="button" class="lnk" data-step="finanz">Eingaben</button></small></div>
+   <div style="padding:14px 16px">${F.warn.map(([w,go])=>`<div class="warnbox" style="margin:0 0 10px">${esc(w)} <button type="button" class="lnk" data-go="${go}"><b>Zur Eingabe</b></button></div>`).join('')}${finLightsHtml(F)}${finKv(F)}${finCharts(F)}${finTable(F,true)}</div></div>`;
+}
+
+/* ---------- Interaktion ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-fin]');if(!b)return;const a=b.dataset.fin;
+  if(a==='switch'){switchVariant();return}
+  if(a==='copy'){
+    if(S.var==='bestand'){toast('Bitte zuerst zum Planfall zurückwechseln.');return}
+    const c=pickOp(S);c.proj.rows.forEach(r=>{r.occ=0;r.adr=0;r.ext=0});c.sc=JSON.parse(JSON.stringify(S.sc));
+    S.alt=c;S.fin.altSrc='B';S.fin.altName=null;S.fin.altAt=new Date().toLocaleDateString('de-AT');
+    ui.finC=null;saveLS();renderStep(true);toast('Bestand angelegt. Mit „Bestand bearbeiten“ ändern Sie ihn.');return}
+  if(a==='file'){const f=$('#finFile');if(f){f.value='';f.click()}return}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id!=='finFile')return;const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||!o.p||!o.r)throw 0;
+      const m=migrate(o);const src=m.var==='bestand'&&m.alt?Object.assign({},m,m.alt):m;
+      if(S.var==='bestand'){Object.assign(S,pickOp(src))}else{S.alt=pickOp(src)}
+      S.fin.altSrc='C';S.fin.altName=f.name;S.fin.altAt=new Date().toLocaleDateString('de-AT');
+      RES=computeAll(S);ui.finC=null;saveLS();renderStep(true);toast('Bestand geladen: '+(o.p.name||f.name))}
+    catch(err){toast('Die Datei ist kein gültiges P&L-Projekt (JSON).')}};rd.readAsText(f)});
+/* Saisonalität: Übernachtungen je Monat in Promille des Jahres 2024 (Eurostat tour_occ_nin2m, alle Beherbergungsbetriebe), Jahressumme in Tsd. */
+const SEASDATA={AT11:['Burgenland',[49,51,61,65,99,131,127,146,86,73,62,52],2984],
+AT12:['Niederösterreich',[56,59,67,74,94,99,116,129,88,86,68,64],6605],
+AT13:['Wien',[53,54,72,81,91,87,96,103,83,91,83,107],18176],
+AT21:['Kärnten',[64,77,47,23,69,109,197,222,90,39,19,45],11354],
+AT22:['Steiermark',[88,102,79,47,71,92,117,135,81,71,45,72],11961],
+AT31:['Oberösterreich',[59,65,67,64,88,102,130,137,89,80,58,60],7983],
+AT32:['Salzburg',[125,146,104,33,51,65,118,130,64,50,25,89],25220],
+AT33:['Tirol',[124,146,108,34,46,62,113,130,71,52,25,90],39270],
+AT34:['Vorarlberg',[125,149,115,33,52,62,102,126,72,61,22,81],7648],
+DE1:['Baden-Württemberg',[50,56,71,79,98,95,114,119,97,94,65,64],50747],
+DE21:['Oberbayern',[54,61,66,68,90,95,119,125,97,91,64,71],43510],
+DE27:['Schwaben / Allgäu',[54,64,63,63,99,93,130,142,101,95,43,54],15408],
+DE30:['Berlin',[56,67,81,83,93,88,97,95,90,93,78,78],30395],
+DE80:['Mecklenburg-Vorpommern',[24,33,56,54,102,118,173,171,110,86,35,38],29615],
+ITH1:['Südtirol',[88,93,72,35,61,84,136,163,101,72,20,73],37047],
+HR03:['Adriatisches Kroatien (Küste & Inseln)',[4,5,11,27,73,136,278,299,121,34,7,6],88381],
+CH05:['Ostschweiz & Graubünden',[110,140,98,38,46,69,126,130,79,63,26,76],12136],
+DE13:['Südbaden / Schwarzwald (Freiburg)',[42,44,64,77,106,94,123,138,98,96,55,63],17129],
+DE14:['Bodensee-Oberschwaben (Tübingen)',[45,50,66,78,107,99,124,136,99,89,56,51],9499],
+DE2:['Bayern',[52,60,67,69,96,95,119,126,98,93,60,65],92601],
+DE4:['Brandenburg',[38,46,64,70,113,109,137,131,100,89,55,47],12658],
+DE5:['Bremen',[52,65,79,79,93,90,93,101,91,92,85,81],2815],
+DE6:['Hamburg',[57,66,83,82,94,87,99,99,85,90,78,80],16068],
+DE7:['Hessen',[66,63,76,77,90,100,101,95,97,89,78,68],29727],
+DE9:['Niedersachsen',[38,44,68,76,110,102,127,135,104,94,54,47],40201],
+DEA:['Nordrhein-Westfalen',[61,63,76,80,93,99,93,98,91,90,81,74],44984],
+DEB:['Rheinland-Pfalz',[37,42,65,76,111,102,119,133,111,99,56,50],19855],
+DEC:['Saarland',[52,59,73,81,99,97,110,119,92,92,66,61],2390],
+DED:['Sachsen',[46,57,74,75,106,96,103,109,94,94,67,79],17620],
+DEE:['Sachsen-Anhalt',[42,52,70,77,109,102,112,114,101,98,62,61],7262],
+DEF:['Schleswig-Holstein',[26,33,60,61,109,114,161,165,107,87,37,40],34557],
+DEG:['Thüringen',[47,55,71,73,108,97,107,123,95,94,66,64],8125],
+ITH2:['Trentino',[106,103,79,29,44,76,164,191,83,34,16,75],19645],
+ITH3:['Venetien',[28,32,42,58,103,127,181,195,114,59,32,30],73472],
+ITH4:['Friaul-Julisch Venetien',[35,35,42,46,93,126,192,212,103,46,32,36],10144],
+ITH5:['Emilia-Romagna',[29,28,42,56,74,146,202,215,97,44,36,31],40783],
+ITI1:['Toskana',[26,27,44,66,98,122,171,189,118,70,36,31],46221],
+ITI2:['Umbrien',[39,32,56,83,93,99,126,163,101,88,63,57],6751],
+ITI3:['Marken',[24,23,31,41,58,140,217,253,100,42,36,35],10482],
+ITI4:['Latium',[51,61,77,87,99,99,110,96,95,96,69,60],51754],
+ITC1:['Piemont',[56,60,70,74,93,93,133,138,97,74,57,56],14396],
+ITC2:['Aostatal',[117,125,104,43,24,57,149,191,54,23,23,90],3695],
+ITC3:['Ligurien',[31,34,49,74,96,116,164,187,120,66,32,30],16129],
+ITC4:['Lombardei',[55,60,69,78,94,96,125,127,98,79,58,61],45131],
+ITF1:['Abruzzen',[37,35,32,37,51,130,218,263,92,39,30,35],7176],
+ITF3:['Kampanien',[26,27,45,76,104,125,151,159,123,94,39,33],21369],
+ITF4:['Apulien',[14,15,23,42,68,132,213,262,127,60,24,21],17894],
+ITF2:['Molise',[33,38,39,43,69,102,206,295,82,37,31,24],456],
+ITF5:['Basilikata',[27,21,32,52,74,128,203,243,110,52,30,28],2511],
+ITF6:['Kalabrien',[9,10,11,20,42,136,266,322,126,35,12,11],8144],
+ITG1:['Sizilien',[24,26,42,72,98,122,156,181,131,90,33,25],17348],
+ITG2:['Sardinien',[7,7,10,29,78,156,215,242,167,72,10,8],15610],
+HR02:['Pannonisches Kroatien',[36,39,48,72,97,98,141,188,104,75,58,46],1362],
+HR05:['Zagreb',[50,49,63,89,96,95,98,107,99,93,71,90],2646],
+HR06:['Nordkroatien',[55,62,60,74,86,90,130,157,82,74,65,65],1255],
+CH01:['Genferseeregion & Wallis',[89,113,91,59,65,80,121,122,82,60,42,78],16049],
+CH02:['Espace Mittelland (inkl. Berner Oberland)',[60,73,60,58,90,106,145,143,98,75,41,53],11421],
+CH03:['Nordwestschweiz (Basel)',[53,57,68,74,94,100,99,98,93,90,83,90],2956],
+CH04:['Zürich',[57,55,69,76,93,102,109,104,96,84,72,83],7094],
+CH06:['Zentralschweiz',[56,68,66,65,92,105,134,130,97,79,49,59],6135],
+CH07:['Tessin',[19,24,46,90,104,110,173,164,123,88,31,27],4326],
+SI03:['Ostslowenien',[66,72,65,62,79,84,131,155,78,78,65,65],5304],
+SI04:['Westslowenien (Ljubljana, Bled, Küste)',[34,39,43,53,84,104,189,211,103,62,36,42],11531],
+FR10:['Île-de-France (Paris)',[69,67,84,83,91,86,85,88,87,94,80,85],83679],
+FRL0:["Provence-Alpes-Côte d'Azur",[34,41,49,70,96,105,172,202,103,63,31,34],56579],
+FRK2:['Rhône-Alpes (inkl. Savoyen)',[95,106,104,63,59,71,142,168,57,37,30,68],54379],
+FRM0:['Korsika',[5,5,8,38,95,131,222,278,151,54,8,6],10884]};
+/* Stichwörter je Region (klein, ohne Akzente); spezifische Regionen vor übergeordneten */
+const SEASKEY=[
+ ['AT33','tirol|tyrol|innsbruck|kitzbuhel|ischgl|solden|seefeld|mayrhofen|zillertal|stubai|otztal|paznaun|st\\. anton|serfaus|achensee|kufstein|lienz|osttirol|alpbach|obergurgl|galtur|wilder kaiser|ellmau|soll'],
+ ['AT32','salzburg|zell am see|kaprun|saalbach|hinterglemm|gastein|obertauern|flachau|wagrain|altenmarkt|lungau|pinzgau|pongau|wolfgangsee|st\\. wolfgang|fuschl'],
+ ['AT34','vorarlberg|lech|zurs|montafon|bregenz|kleinwalsertal|brand|dornbirn|feldkirch|bludenz|damuls'],
+ ['AT21','karnten|carinthia|villach|klagenfurt|worthersee|velden|bad kleinkirchheim|nassfeld|millstatt|ossiacher|weissensee|heiligenblut|nockberge'],
+ ['AT22','steiermark|styria|graz|schladming|ramsau|dachstein|bad aussee|ausseerland|loipersdorf|bad waltersdorf|murau|kreischberg|planai'],
+ ['AT31','oberosterreich|upper austria|linz|bad ischl|hallstatt|salzkammergut|attersee|traunsee|gmunden|wels|steyr|mondsee'],
+ ['AT13','wien|vienna'],
+ ['AT12','niederosterreich|lower austria|st\\. polten|baden bei wien|wachau|semmering|krems|durnstein|melk|tulln'],
+ ['AT11','burgenland|eisenstadt|neusiedl|bad tatzmannsdorf|podersdorf|rust'],
+ ['DE21','oberbayern|munchen|munich|garmisch|partenkirchen|berchtesgaden|tegernsee|chiemsee|schliersee|mittenwald|oberammergau|bad reichenhall|ingolstadt|rosenheim|starnberg'],
+ ['DE27','schwaben|allgau|oberstdorf|fussen|fuessen|augsburg|kempten|lindau|oberstaufen|bad hindelang'],
+ ['DE13','freiburg|schwarzwald|black forest|titisee|feldberg|konstanz|baden-baden|offenburg|lorrach'],
+ ['DE14','tubingen|bodensee|friedrichshafen|ravensburg|ulm|meersburg|uberlingen'],
+ ['DE1','baden-wurttemberg|stuttgart|heidelberg|karlsruhe|mannheim'],
+ ['DE2','bayern|bavaria|nurnberg|nuremberg|regensburg|wurzburg|bamberg|passau|bayerischer wald|franken'],
+ ['DE30','berlin'],['DE6','hamburg'],['DE5','bremen'],
+ ['DEF','schleswig|holstein|sylt|kiel|lubeck|timmendorf|amrum|fohr|st\\. peter-ording|fehmarn|flensburg'],
+ ['DE80','mecklenburg|vorpommern|rugen|usedom|rostock|warnemunde|schwerin|stralsund|binz|kuhlungsborn|heiligendamm|muritz|darss'],
+ ['DE9','niedersachsen|lower saxony|hannover|norderney|borkum|juist|langeoog|cuxhaven|goslar|braunlage|luneburg|wolfsburg|osnabruck'],
+ ['DEA','nordrhein|westfalen|koln|cologne|dusseldorf|dortmund|essen|bonn|aachen|munster|sauerland|winterberg'],
+ ['DE7','hessen|frankfurt|wiesbaden|kassel|darmstadt|rheingau'],
+ ['DEB','rheinland-pfalz|mainz|mosel|koblenz|trier|pfalz|eifel'],
+ ['DEC','saarland|saarbrucken'],
+ ['DED','sachsen|saxony|dresden|leipzig|chemnitz|erzgebirge|sachsische schweiz'],
+ ['DEE','sachsen-anhalt|magdeburg|halle|wernigerode|quedlinburg|harz'],
+ ['DEG','thuringen|thuringia|erfurt|weimar|jena|eisenach|oberhof'],
+ ['DE4','brandenburg|potsdam|spreewald|cottbus|uckermark'],
+ ['ITH2','trentino|trento|trient|madonna di campiglio|riva del garda|val di fassa|val di sole|rovereto|arco|levico|andalo|folgaria|canazei'],
+ ['ITH1','sudtirol|alto adige|bolzano|bozen|meran|merano|groden|val gardena|alta badia|bruneck|brunico|kronplatz|seiser alm|dolomiten|dolomites|brixen|bressanone|vinschgau|schenna'],
+ ['ITC4','lombard|milano|milan|mailand|como|bergamo|brescia|sirmione|limone|bormio|livigno|valtellina|iseo|bellagio|desenzano|gardone|salo'],
+ ['ITH3','veneto|venetien|venezia|venedig|venice|verona|cortina|jesolo|bibione|caorle|bardolino|garda|lazise|malcesine|padova|asiago|treviso'],
+ ['ITH4','friuli|friaul|trieste|triest|lignano|grado|udine|tarvisio'],
+ ['ITH5','emilia|romagna|bologna|rimini|riccione|cattolica|parma|modena|ferrara|ravenna|cesenatico'],
+ ['ITI1','toscana|toskana|tuscany|firenze|florenz|florence|siena|pisa|lucca|elba|chianti|forte dei marmi|versilia|maremma|arezzo|montalcino'],
+ ['ITI2','umbria|umbrien|perugia|assisi|orvieto|spoleto'],
+ ['ITI3','marche|marken|ancona|urbino|pesaro|senigallia'],
+ ['ITI4','lazio|latium|roma|rome|rom'],
+ ['ITC1','piemonte|piemont|torino|turin|langhe|lago maggiore|stresa|sestriere|alba'],
+ ['ITC2','aosta|aostatal|courmayeur|cervinia|la thuile'],
+ ['ITC3','liguria|ligurien|genova|genua|cinque terre|portofino|sanremo|alassio|rapallo|santa margherita'],
+ ['ITF1','abruzz|pescara|l\'aquila'],['ITF2','molise|campobasso'],
+ ['ITF3','campania|kampanien|napoli|neapel|naples|amalfi|positano|capri|ischia|sorrento|sorrent|ravello'],
+ ['ITF4','puglia|apulien|bari|lecce|salento|polignano|ostuni|gargano'],
+ ['ITF5','basilicata|basilikata|matera|maratea'],['ITF6','calabria|kalabrien|tropea'],
+ ['ITG1','sicilia|sizilien|sicily|palermo|taormina|catania|siracusa|cefalu'],['ITG2','sardegna|sardinien|sardinia|cagliari|olbia|costa smeralda|alghero'],
+ ['HR05','grad zagreb|city of zagreb|^zagreb$|zagreb,|zagreb croatia'],
+ ['HR03','istr|rovinj|porec|pula|umag|opatija|rijeka|kvarner|primorsko|krk|losinj|rab|zadar|sibenik|split|dubrovnik|hvar|brac|korcula|makarska|trogir|dalmat|lika|plitvic|novalja|pag|vis|cavtat|omis|crikvenica|biograd'],
+ ['HR06','varazdin|medimur|krapin|koprivnic|zagorje|zagrebacka'],
+ ['HR02','slavon|osijek|vukovar|karlovac|sisak|bjelovar|pozeg|virovitic|brod'],
+ ['CH05','graubunden|grisons|grischun|st\\. moritz|davos|arosa|laax|flims|klosters|lenzerheide|engadin|pontresina|scuol|chur|st\\. gallen|appenzell|thurgau|glarus|schaffhausen|bad ragaz'],
+ ['CH01','wallis|valais|zermatt|saas|crans|montana|verbier|leukerbad|aletsch|geneve|genf|geneva|lausanne|montreux|vaud|waadt|villars|vevey'],
+ ['CH07','tessin|ticino|lugano|locarno|ascona|bellinzona'],
+ ['CH06','luzern|lucerne|engelberg|andermatt|zug|schwyz|uri|obwalden|nidwalden|weggis|vitznau|burgenstock|brunnen'],
+ ['CH02','bern|interlaken|grindelwald|wengen|murren|gstaad|adelboden|lenk|kandersteg|thun|fribourg|freiburg im uchtland|neuchatel|neuenburg|jura|solothurn|biel'],
+ ['CH04','zurich'],['CH03','basel|aargau|baden ch'],
+ ['SI04','gorenjska|osrednjeslovensk|ljubljana|bled|bohinj|kranjska gora|piran|portoroz|koper|izola|obalno|goriska|nova gorica|bovec|kobarid|postojna'],
+ ['SI03','maribor|celje|ptuj|rogaska|podravsk|savinjsk|pomursk|dolenjsk|terme|slovenia|slowenien'],
+ ['FRM0','corse|korsika|corsica|ajaccio|bastia|porto-vecchio|calvi|bonifacio'],
+ ['FRK2','rhone-alpes|rhone|savoie|savoyen|haute-savoie|chamonix|courchevel|meribel|val d\'isere|val thorens|tignes|megeve|annecy|lyon|grenoble|evian|alpe d\'huez|les arcs'],
+ ['FRL0','provence|cote d\'azur|cote dazur|nice|nizza|cannes|antibes|saint-tropez|st\\. tropez|marseille|monaco|menton|avignon|aix-en-provence|luberon|var|alpes-maritimes|bouches-du-rhone'],
+ ['FR10','ile-de-france|paris|versailles']
+];
+const deacc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ß/g,'ss');
+function seasMatch(txt){const t=deacc(txt);if(!t.trim())return null;
+  for(const [code,kw] of SEASKEY){const re=new RegExp('(^|[^a-z])('+kw+')([^a-z]|$)');if(re.test(t))return code}
+  return null}
+/* aktive Region: manuell > Stichwort im Standort > Online-Suche */
+function seasRegion(){
+  const P=S.p;
+  if(P.seasReg&&SEASDATA[P.seasReg])return {code:P.seasReg,how:'manuell gewählt'};
+  const k=seasMatch(P.location);
+  if(k)return {code:k,how:`erkannt aus „${P.location}“`};
+  const g=P.seasGeo;
+  if(g&&g.q===P.location&&g.code)return {code:g.code,how:`Online-Suche: ${g.name}`};
+  return null;
+}
+/* Index je Monat: Übernachtungen pro Tag, Spitzenmonat = 100 */
+function seasIdx(code){const d=SEASDATA[code];if(!d)return null;const pd=d[1].map((v,m)=>v/MDAYS[m]);const mx=Math.max(...pd);return pd.map(v=>v/mx*100)}
+const seasOf=i=>i>=75?'H':i>=45?'M':'L';
+/* Online-Suche (OpenStreetMap Nominatim), nur wenn der Standort kein Stichwort trifft */
+let seasBusy=false;
+async function seasLookup(){
+  const loc=(S.p.location||'').trim(); if(!loc||seasMatch(loc)||S.p.seasReg)return;
+  if(S.p.seasGeo&&S.p.seasGeo.q===loc)return;
+  seasBusy=true;seasRefresh();
+  try{
+    const cc={AT:'at',DE:'de',IT:'it',HR:'hr',CH:'ch',FR:'fr'}[S.p.country];
+    const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&accept-language=de${cc?'&countrycodes='+cc:''}&q=${encodeURIComponent(loc)}`;
+    const ctl=new AbortController();setTimeout(()=>ctl.abort(),8000);
+    const r=await fetch(url,{signal:ctl.signal,headers:{'Accept':'application/json'}});const j=await r.json();
+    const a=(j&&j[0]&&j[0].address)||{};
+    const order=[a.county,a.province,a.state_district,a.region,a.state,j&&j[0]&&j[0].display_name];
+    let code=null;for(const f of order){if(f){code=seasMatch(f);if(code)break}}
+    S.p.seasGeo={q:loc,code,name:[a.state_district||a.county,a.state].filter(Boolean).join(', ')||(j[0]?j[0].display_name:'nicht gefunden')};
+  }catch(e){S.p.seasGeo={q:loc,code:null,name:null,err:true}}
+  seasBusy=false;saveLS();seasRefresh();
+}
+function seasRefresh(){const el=$('#seasBox');if(el)el.innerHTML=seasBoxHtml()}
+function seasChart(idx){
+  const {W,H,pl,pr,pb}=OC, bw=(W-pl-pr)/12, y=v=>ocY(v); let g='';
+  [0,25,50,75,100].forEach(v=>{g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end" font-size="12.5" fill="var(--ink-3)">${v}</text>`});
+  const pts=idx.map((v,m)=>[pl+m*bw+bw/2,y(v),m,v]);
+  idx.forEach((v,m)=>{const x=pl+m*bw,s=seasOf(v);
+    g+=`<rect x="${x+bw*.2}" y="${y(v)}" width="${bw*.6}" height="${Math.max(0,y(0)-y(v))}" fill="var(--olive)" fill-opacity=".22"><title>${MONTHS[m]}: Index ${NF0.format(v)} · Vorschlag ${SEAS[s]}</title></rect>`;
+    g+=`<rect x="${x+2}" y="${H-pb+8}" width="${bw-4}" height="4" rx="2" class="s-${s}"><title>Vorschlag: ${SEAS[s]}</title></rect>`;
+    g+=`<text x="${x+bw/2}" y="${H-pb+28}" text-anchor="middle" font-size="13.5" fill="var(--ink-2)">${MONTHS[m]}</text>`});
+  for(let i=1;i<12;i++)g+=`<line x1="${pts[i-1][0]}" y1="${pts[i-1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}" stroke="var(--olive)" stroke-width="2"/>`;
+  pts.forEach(([cx,cy,m,v])=>{g+=`<text x="${cx}" y="${cy-14}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--num)">${NF0.format(v)}</text><circle cx="${cx}" cy="${cy}" r="6" fill="var(--surface)" stroke="var(--olive)" stroke-width="2.5"><title>${MONTHS[m]}: ${NF0.format(v)} % des Spitzenmonats</title></circle>`});
+  return `<svg class="occsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Saisonalität der Region je Monat">${g}</svg>`;
+}
+function seasBoxHtml(){
+  const R=seasRegion(), opts=[['','automatisch aus Standort']].concat(Object.entries(SEASDATA).map(([k,v])=>[k,v[0]+' ('+k.slice(0,2)+')']));
+  const sel=`<label class="f" style="max-width:340px"><span>Region</span><div class="inp"><select id="f-p-seasReg" data-p="p.seasReg" data-t="s" data-rr="1">${opts.map(([k,l])=>`<option value="${esc(k)}"${k===(S.p.seasReg||'')?' selected':''}>${esc(l)}</option>`).join('')}</select></div></label>`;
+  if(!R){
+    const g=S.p.seasGeo, st=seasBusy?'Region wird gesucht …':!S.p.location?'Tragen Sie oben einen Standort ein, die Region wird dann automatisch ermittelt.':g&&g.q===S.p.location&&g.err?'Die Online-Suche ist hier nicht erreichbar. Bitte die Region wählen.':g&&g.q===S.p.location?`Keine Daten für „${esc(g.name||S.p.location)}“. Bitte eine vergleichbare Region wählen.`:'Region wird gesucht …';
+    return `<div class="seashead">${sel}<p class="hint" style="margin:0">${st}</p></div>`;
+  }
+  const d=SEASDATA[R.code], idx=seasIdx(R.code), sug=idx.map(seasOf);
+  const low=idx.map((v,m)=>v<20?MONTHS[m]:null).filter(Boolean);
+  const diff=S.cal.filter((c,m)=>c.season!==sug[m]).length;
+  return `<div class="seashead">${sel}<div class="seasmeta"><b>${esc(d[0])}</b> · ${esc(R.how)}<br><span class="muted">Übernachtungen 2024 in allen Beherbergungsbetrieben: ${NF1.format(d[2]/1000)} Mio. · Quelle Eurostat</span></div></div>
+   <div class="occwrap">${seasChart(idx)}</div>
+   <p class="hint" style="margin:6px 0 10px">Index = Übernachtungen pro Tag im Verhältnis zum stärksten Monat (= 100). Farbstreifen: vorgeschlagene Saison (ab 75 Hauptsaison, ab 45 Zwischensaison).${low.length?` Sehr schwache Nachfrage in ${low.join(', ')}: Schließzeit prüfen.`:''}</p>
+   <div class="btnrow"><button class="btn${diff?' primary':''}" type="button" data-seas="season">${diff?`Saisons übernehmen (${diff} Monate abweichend)`:'Saisons stimmen überein'}</button>
+     <button class="btn" type="button" data-seas="occ" title="Verteilt die heutige Ø Belegung nach dem Muster der Region auf die geöffneten Monate">Belegungsverlauf übernehmen</button></div>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-seas]');if(!b)return;const R=seasRegion();if(!R)return;const idx=seasIdx(R.code);
+  ui.prev=stab();
+  if(b.dataset.seas==='season'){S.cal.forEach((c,m)=>c.season=seasOf(idx[m]));toast('Saisons aus der Region übernommen')}
+  else{const open=S.cal.map((c,m)=>c.open&&c.days>0?m:-1).filter(m=>m>=0);if(!open.length)return;
+    const w=open.map(m=>+S.cal[m].days), avg=sum(open.map((m,i)=>(+S.r.occ[m]||0)*w[i]))/sum(w), mi=sum(open.map((m,i)=>idx[m]*w[i]))/sum(w);
+    let k=avg/mi;for(let it=0;it<8;it++){const cur=sum(open.map((m,i)=>clamp(k*idx[m],5,95)*w[i]))/sum(w);if(cur>0)k*=avg/cur}
+    open.forEach(m=>S.r.occ[m]=Math.round(clamp(k*idx[m],5,95)));toast(`Belegungsverlauf übernommen, Ø ${NF0.format(avg)} % bleibt gleich`)}
+  RES=computeAll(S);saveLS();renderStep(true)});
+document.addEventListener('change',e=>{if(e.target.id==='f-p-location')seasLookup()});
 
 /* ================= PDF-Export (USALI) ================= */
 async function logoPng(){
@@ -1439,6 +2004,33 @@ async function makePdf(){
   doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
   doc.text(pdfTxt('Gliederung nach USALI 11th Edition. Alle Werte in Nominalwerten der jeweiligen Betriebsjahre. Modellrechnung, keine Gewähr für den Eintritt der Annahmen.'),M,Math.max(doc.lastAutoTable.finalY,110)+10);
 
+  /* Finanzierung & Rückzahlung */
+  {const F=FIN(), fs=S.fin;
+   doc.addPage();header('Finanzierung & Rückzahlung',sub);
+   doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...CHAR);doc.text('FINANZIERUNG & RÜCKZAHLUNG',M,29);
+   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(120,115,117);
+   doc.text(pdfTxt(`${F.reno?'Renovierung / Erweiterung, Vergleich mit '+F.bestName:'Neubau'} · ${F.own?'Eigentümer = Betreiber':'PropCo / OpCo'} · Szenario ${S.scen||'Base'} · Werte in EUR`),M,34);
+   const L=finLights(F);
+   const modeTxt={ann:'Annuität',lin:'Linear',free:`${F.free} tilgungsfreie Jahre, danach ${fs.after==='lin'?'linear':'Annuität'}`}[fs.mode];
+   const left=[...L.map(([t,v,c,st])=>[t,`${v} · ${st}`]),
+     ['Gesamtinvestition',`${e0(F.total)} € (Kosten ${e0(F.costs)}${F.reno?` · Ertragsausfall ${e0(F.loss)}`:''} · Bauzeitzinsen ${e0(F.idc)})`],
+     ['Eigenkapital / Kredit',`${e0(F.EK)} € (${e1(fs.ekPct)} %) / ${e0(F.L)} €`],
+     ['Kredit',`${e1(fs.rate)} % Zins · ${fs.term} Jahre · ${modeTxt}${+fs.sweep?` · Sondertilgung ${e0(fs.sweep)} % des Überschusses`:''}`],
+     ...(F.taxOn?[['Ertragsteuern',`gesamt ${e0(F.taxSum)} EUR · ${[...new Set(F.rows.slice(1).map(r=>NF1.format(r.taxRate)+' %'))].join(' / ')} (${F.rows[1].taxTxt})`]]:[]),['Kredit getilgt',F.paidOff?`${F.cal0+F.paidOff}`:`Restschuld nach ${F.H} Jahren ${e0(F.rows[F.H].bal)} €`]];
+   doc.autoTable({startY:38,margin:{left:M,right:M},tableWidth:TW,theme:'plain',styles:{...baseStyles,halign:'left',fontSize:7.2},
+     body:left.map(([a,b])=>[pdfTxt(a),pdfTxt(b)]),columnStyles:{0:{cellWidth:60,fontStyle:'bold'}}});
+   const own=F.own, reno=F.reno;
+   const head=['Jahr',own?'Cashflow Plan':'Pacht Plan',...(reno?[own?'Cashflow Bestand':'Pacht Bestand']:[]),'Mehrertrag','Zinsen','Tilgung','Bankrate','Deckung',...(F.taxOn?['Steuern']:[]),'Überschuss','EK zurück kum.','Restschuld',...(own?[]:['OpCo n. Pacht'])];
+   const body=F.rows.slice(1).map(r=>[String(r.cal),e0(r.plan),...(reno?[e0(r.best)]:[]),e0(r.mehr),e0(r.int),e0(r.pr+r.extra),e0(r.ds+r.extra),r.dscr==null?'-':NF2.format(r.dscr)+'x',...(F.taxOn?[e0(r.tax)]:[]),e0(r.surplus),e0(r.cum),e0(r.bal),...(own?[]:[e0(r.opco)])]);
+   body.unshift([String(F.cal0),pdfTxt('Bau'),...(reno?['']:[]),'','','','','',...(F.taxOn?['']:[]),pdfTxt('-'+e0(F.EK)),'0',e0(F.L),...(own?[]:[''])]);
+   doc.autoTable({startY:doc.lastAutoTable.finalY+4,margin:{left:M,right:M,bottom:14,top:26},tableWidth:TW,theme:'plain',styles:{...baseStyles,fontSize:6.6},headStyles:{...headStyles,fontSize:6.4},showHead:'everyPage',
+     head:[head.map(pdfTxt)],body:body.map(r=>r.map(pdfTxt)),
+     didParseCell:d=>{if(d.column.index===0)d.cell.styles.halign='left';if(d.section==='body'){const r=F.rows[d.row.index];if(r&&r.dscr!=null&&d.column.index===(reno?7:6)){d.cell.styles.textColor=r.dscr>=F.dmin?[69,82,70]:r.dscr>=1?[138,106,28]:[168,67,47];d.cell.styles.fontStyle='bold'}}},
+     didDrawPage:d=>{if(d.pageNumber>1)header('Finanzierung & Rückzahlung (Fortsetzung)',sub)}});
+   doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
+   doc.text(pdfTxt(`${own?'Cashflow = EBITDA nach FF&E-Rücklage (Pacht aus dem P&L nicht abgezogen).':'PropCo bedient den Kredit aus der Pacht.'} Mehrertrag = Planfall minus Bestand. Deckung = Cashflow / (Bankrate + bestehender Schuldendienst). ${F.taxOn?'Ertragsteuern auf den Mehrgewinn (Mehrertrag - Zinsen - Abschreibung) mit Verlustvortrag, Satz je Land und Jahr; Deckung vor Steuern.':'Ohne Ertragsteuern.'} Ohne Verkaufs- oder Restwert. Jahre nach dem 10. Betriebsjahr mit Umsatzindex fortgeschrieben.`),M,Math.min(196,doc.lastAutoTable.finalY+6),{maxWidth:TW});
+  }
+
   const n=doc.getNumberOfPages();
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(155,149,153);doc.setLineWidth(.2);doc.line(M,200,W-M,200);
     doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
@@ -1462,7 +2054,7 @@ async function makeXlsx(withF){
   toast('Excel wird erstellt …');
   const wb=new EX.Workbook(); wb.creator='mamu hospitality'; wb.created=new Date();
   const wsU=wb.addWorksheet('USALI',{views:[{state:'frozen',xSplit:2,ySplit:4}]}), wsS=wb.addWorksheet('Schedules',{views:[{state:'frozen',ySplit:3}]}),
-        wsP=wb.addWorksheet('Personal'), wsC=wb.addWorksheet('Szenarien'),
+        wsP=wb.addWorksheet('Personal'), wsC=wb.addWorksheet('Szenarien'), wsF=wb.addWorksheet('Finanzierung',{views:[{state:'frozen',ySplit:16}]}),
         wsT=wb.addWorksheet('Treiber',{views:[{state:'frozen',xSplit:2,ySplit:4}]}), wsA=wb.addWorksheet('Annahmen',{views:[{state:'frozen',ySplit:4}]});
   const scen=S.scen||'Base', dyI=(ui.dy||+S.p.stab), Rd=RES[dyI-1], NY=RES.length;
   const OL='FF77704A',TE='FF9A7659',KEY='FFF0EFE9',LINE='FFE2DFDA',CH='FF2E2C2D',DYF='FFF7F0EA';
@@ -1634,9 +2226,32 @@ async function makeXlsx(withF){
   r++;
   [['Occupancy',R=>R.occ,PCT],['ADR (€)',R=>R.adr,EUR2],['Total Revenue',R=>R.tr,NUM],['GOP',R=>R.gop,NUM],['GOP %',R=>R.tr?R.gop/R.tr:0,PCT],['EBITDA',R=>R.ebitda,NUM],['EBITDA less Reserve',R=>R.ebitdaR,NUM]].forEach(([l,f,fm])=>{
     const row=wsC.getRow(r++);row.getCell(1).value=l;rs.forEach((R,i)=>{const c=row.getCell(2+i);c.value=f(R);c.numFmt=fm});styleRow(row,'row',4)});
-  wsC.columns=[{width:26},{width:14},{width:14},{width:14}];
+  wsC.columns=[{width:26},{width:14},{width:14},{width:14},{width:14},{width:12},{width:14}];
 
 
+  /* ---------- Finanzierung ---------- */
+  {const F=FIN(),fs=S.fin,own=F.own,reno=F.reno;
+   title(wsF,'Finanzierung & Rückzahlung · '+S.p.name,`${reno?'Renovierung / Erweiterung, Vergleich mit '+F.bestName:'Neubau'} · ${own?'Eigentümer = Betreiber':'PropCo / OpCo'} · Szenario ${scen} · EUR`);
+   const P=[['Gesamtinvestition',F.total],['davon Kosten',F.costs],['davon Ertragsausfall Bauphase',F.loss],['davon Bauzeitzinsen',F.idc],['Eigenkapital',F.EK],['Kredit',F.L],
+     ['Zinssatz %',+fs.rate],['Laufzeit Jahre',+fs.term],['Rückzahlung',{ann:'Annuität',lin:'Linear',free:`${F.free} tilgungsfreie Jahre, danach ${fs.after==='lin'?'linear':'Annuität'}`}[fs.mode]],
+     ['Bestehender Schuldendienst p.a.',+fs.existDebt||0]];
+   P.forEach(([l,v],i)=>{const row=wsF.getRow(4+i);row.getCell(1).value=l;row.getCell(2).value=v;if(typeof v==='number')row.getCell(2).numFmt=i>=6&&i<=7?'0.0#':NUM;styleRow(row,'row',2)});
+   const exRef='$B$13';
+   const hdr=['Jahr',own?'Cashflow Planfall':'Pacht Planfall',reno?(own?'Cashflow Bestand':'Pacht Bestand'):'Bestand','Mehrertrag','Zinsen','Tilgung','Bankrate','Deckung (x)','Überschuss für Eigentümer','EK zurück kumuliert','Restschuld',...(own?[]:['OpCo nach Pacht']),...(F.taxOn?['Abschreibung','Steuersatz %','Ertragsteuern']:[])];
+   const tc=own?12:13, TX=F.taxOn?String.fromCharCode(64+tc+2):null;
+   headRow(wsF,16,hdr);
+   const r0=wsF.getRow(17);[F.cal0,'Bau',null,null,null,null,null,null,-F.EK,0,F.L].forEach((v,i)=>{r0.getCell(i+1).value=v;if(typeof v==='number'&&i)r0.getCell(i+1).numFmt=NUM});styleRow(r0,'sub',hdr.length);
+   F.rows.slice(1).forEach((r,k)=>{const n=18+k,row=wsF.getRow(n);
+     const set=(c,f,v,fmt)=>{row.getCell(c).value=val(f,v);row.getCell(c).numFmt=fmt||NUM};
+     row.getCell(1).value=r.cal;
+     set(2,null,r.plan);set(3,null,r.best);set(4,`B${n}-C${n}`,r.mehr);set(5,null,r.int);set(6,null,r.pr+r.extra);set(7,`E${n}+F${n}`,r.ds+r.extra);
+     set(8,`IF(G${n}+${exRef}>0,B${n}/(G${n}+${exRef}),"")`,r.dscr==null?'':r.dscr,'0.00');set(9,`D${n}-G${n}${TX?'-'+TX+n:''}`,r.surplus);set(10,`${k?'J'+(n-1):'0'}+I${n}`,r.cum);set(11,null,r.bal);
+     if(!own)set(12,null,r.opco);
+     if(F.taxOn){set(tc,null,r.afa);set(tc+1,null,r.taxRate,'0.0');set(tc+2,null,r.tax)}
+     styleRow(row,'row',hdr.length)});
+   wsF.columns=[{width:30},{width:16},{width:16},{width:14},{width:12},{width:12},{width:13},{width:11},{width:18},{width:18},{width:14},{width:14}];
+   const nr=wsF.getRow(19+F.rows.length);nr.getCell(1).value='Zinsen und Tilgung aus dem Kreditplan des Tools. '+(F.taxOn?'Ertragsteuern auf den Mehrgewinn (Mehrertrag − Zinsen − Abschreibung) mit Verlustvortrag, Satz je Land und Jahr laut Tool.':'Ohne Ertragsteuern.')+' Ohne Verkaufs- oder Restwert. Jahre nach dem 10. Betriebsjahr mit Umsatzindex fortgeschrieben.';styleRow(nr,'info',1);
+  }
   const buf=await wb.xlsx.writeBuffer();
   await saveFile(`${fileBase()}_PL_${scen}_${withF?'Formeln':'Werte'}.xlsx`,new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
