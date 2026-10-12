@@ -1368,7 +1368,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='del'){const arr=get(b.dataset.arr);if(b.dataset.arr==='f.outlets'){const o=arr[+b.dataset.i];if(o)S.st.pos.forEach(p=>{if(p.dept==='OUT:'+o.id)p.dept='FBADM'})}if(b.dataset.arr==='r.types'&&arr.length<=1){toast('Mindestens eine Zimmerkategorie ist nötig.');return}
     arr.splice(+b.dataset.i,1);RES=computeAll(S);saveLS();renderStep(true);return}
   if(b.id==='btnPdf'||b.id==='btnPdfTop'){pickSave(pdfName(),'application/pdf').then(h=>{if(h!==false)makePdf(h)});return}
-  if(b.id==='btnSave'){const n=fileBase()+'_Projekt.json';pickSave(n,'application/json').then(h=>{if(h!==false)saveFile(n,JSON.stringify(S,null,1),'application/json',h)});return}
+  if(b.id==='btnSave'){const n=stdName('json');pickSave(n,'application/json').then(h=>{if(h!==false)saveFile(n,JSON.stringify(S,null,1),'application/json',h)});return}
   if(b.id==='btnLoad'){$('#fileIn').value='';$('#fileIn').click();return}
   if(b.id==='btnReset'){showResetBar();return}
   if(b.id==='rsEx'){S=defaults();afterLoad('Beispielprojekt geladen');return}
@@ -1390,8 +1390,11 @@ const fileBase=()=>(S.p.name||'Projekt').replace(/[^\wÄÖÜäöüß\- ]+/g,'').
 /* ---------- Dateien speichern ---------- */
 const DLp=(async()=>{try{if(window.claude&&typeof window.claude.use==='function')return await window.claude.use('downloads')}catch(e){}return null})();
 const XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const pdfName=()=>`${fileBase()}_USALI_${S.scen||'Base'}_${RES[(ui.dy||+S.p.stab)-1].cal}.pdf`;
-const xlsxName=wf=>`${fileBase()}_PL_${S.scen||'Base'}_${wf?'Formeln':'Werte'}.xlsx`;
+const dstamp=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return p(d.getFullYear()%100)+p(d.getMonth()+1)+p(d.getDate())};
+/* Dateiname: JJMMTT_P&L_Projektname */
+const stdName=ext=>`${dstamp()}_P&L_${fileBase()}.${ext}`;
+const pdfName=()=>stdName('pdf');
+const xlsxName=wf=>stdName('xlsx');
 const FTYPES={json:'Projektdatei (JSON)',pdf:'PDF-Dokument',xlsx:'Excel-Arbeitsmappe'};
 /* Speicherort abfragen: Dialog des Betriebssystems (Chrome / Edge). Liefert Handle, null = kein Dialog verfügbar, false = abgebrochen */
 async function pickSave(name,mime){
