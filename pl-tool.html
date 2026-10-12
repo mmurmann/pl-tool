@@ -827,6 +827,8 @@ const CALC={
   typeShare:i=>{const k=keysOf(S);return k?pc(S.r.types[i].keys/k):'–'},
   avgSize:()=>{const k=keysOf(S);return k?e1(sum(S.r.types.map(t=>t.keys*t.size))/k)+' m²':'–'},
   avgPrem:()=>e1(avgPrem(S))+' €',
+  typeRate:a=>{const [i,x]=String(a).split(':');const t=S.r.types[+i];return t?e0(+S.r.rate[x]+(+t.prem||0))+' €':''},
+  typeRateAvg:x=>e0(+S.r.rate[x]+avgPrem(S))+' €',
   openDays:()=>e0(sum(S.cal.map(c=>c.open?+c.days:0))),
   openMonths:()=>e1(openMonthsOf(S)),
   occAvg:()=>{let a=0,s=0;S.cal.forEach((c,i)=>{if(c.open){a+=c.days;s+=c.days*S.r.occ[i]}});return a?e1(s/a)+' %':'–'},
@@ -918,16 +920,16 @@ projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskal
    <p class="hint" style="margin-top:12px">Öffnungstage p.a.: <b>${calc('openDays')}</b> · Betriebsmonate: <b>${calc('openMonths')}</b></p>`)}),
 
 zimmer:()=>({t:'Zimmer, Preise & Belegung',lead:'Zimmerkategorien, Rack Rates mit Verpflegungspauschale, Gäste, Belegung je Monat im stabilisierten Jahr, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
- html:block('sec-types','Zimmerkategorien','Der Aufpreis (netto) wird mit der Keys-Verteilung gewichtet und auf die Rack Rate der Basiskategorie aufgeschlagen.',
-   `<div class="tw"><table class="t"><thead><tr><th>Kategorie</th><th>Keys</th><th>Anteil</th><th>Größe m²</th><th>Aufpreis € netto</th><th></th></tr></thead><tbody>
-   ${S.r.types.map((t,i)=>`<tr><td>${cT(`r.types.${i}.name`)}</td><td>${cN(`r.types.${i}.keys`,{al:'Keys'})}</td><td>${calc('typeShare',i)}</td><td>${cN(`r.types.${i}.size`,{al:'Größe'})}</td><td>${cN(`r.types.${i}.prem`,{al:'Aufpreis'})}</td><td>${del('r.types',i)}</td></tr>`).join('')}
-   </tbody><tfoot><tr><td>Total</td><td>${calc('keys')}</td><td>100 %</td><td>${calc('avgSize')}</td><td>Ø ${calc('avgPrem')}</td><td></td></tr></tfoot></table></div>${add('r.types','Kategorie')}`)
- +block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
+ html:block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
    `<div class="grid row" style="--n:6">${NUM('r.rate.L','Rack Rate Nebensaison','€ netto')}${NUM('r.rate.M','Rack Rate Zwischensaison','€ netto')}${NUM('r.rate.H','Rack Rate Hauptsaison','€ netto')}
     ${SEL('r.pkg','Verpflegung im Zimmerpreis',[['RO','Nur Logis'],['BB','inkl. Frühstück'],['HB','inkl. Halbpension']],{rr:1})}
     ${S.r.pkg!=='RO'?NUM('r.bfSplit','Split Frühstück netto','€ / Pers.',{tip:'Netto-Wert des Frühstücks je Person, der im Zimmerpreis enthalten ist'}):''}
     ${S.r.pkg==='HB'?NUM('r.hbSplit','Split Abendessen netto','€ / Pers.'):''}</div>
     <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) <br>Ø über alle Zimmerkategorien (inkl. Ø Aufpreis ${calc('avgPrem')}): Logis netto NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto inkl. Verpflegung NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}. Die Preise der günstigsten Kategorie stehen im Modul-Ergebnis.</p>`)
+ +block('sec-types','Zimmerkategorien','Der Aufpreis (netto) wird mit der Keys-Verteilung gewichtet und auf die Rack Rate der Basiskategorie aufgeschlagen.',
+   `<div class="tw"><table class="t"><thead><tr><th>Kategorie</th><th>Keys</th><th>Anteil</th><th>Größe m²</th><th>Aufpreis € netto</th><th title="Rack Rate der Basiskategorie + Aufpreis, netto je Zimmer und Nacht">Rack Rate NS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th>Rack Rate ZS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th>Rack Rate HS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th></th></tr></thead><tbody>
+   ${S.r.types.map((t,i)=>`<tr><td>${cT(`r.types.${i}.name`)}</td><td>${cN(`r.types.${i}.keys`,{al:'Keys'})}</td><td>${calc('typeShare',i)}</td><td>${cN(`r.types.${i}.size`,{al:'Größe'})}</td><td>${cN(`r.types.${i}.prem`,{al:'Aufpreis'})}</td><td>${calc('typeRate',i+':L')}</td><td>${calc('typeRate',i+':M')}</td><td>${calc('typeRate',i+':H')}</td><td>${del('r.types',i)}</td></tr>`).join('')}
+   </tbody><tfoot><tr><td>Total</td><td>${calc('keys')}</td><td>100 %</td><td>${calc('avgSize')}</td><td>Ø ${calc('avgPrem')}</td><td>Ø ${calc('typeRateAvg','L')}</td><td>Ø ${calc('typeRateAvg','M')}</td><td>Ø ${calc('typeRateAvg','H')}</td><td></td></tr></tfoot></table></div>${add('r.types','Kategorie')}`)
  +block('sec-guests','Gäste','Die Gästezahl steuert F&B- und Spa-Nachfrage. Kinder konsumieren mit reduziertem Ø-Bon.',
    `<div class="grid">${NUM('r.dof','Double Occupancy Factor','Gäste/Zi.',{tip:'Durchschnittliche Personen je belegtem Zimmer'})}${NUM('r.kids','Anteil Kinder','%')}${NUM('r.kidSpend','Konsum Kinder','% v. Erw.')}</div>`)
  +block('sec-occ','Belegung je Monat','Zimmerbelegung im stabilisierten Jahr. Punkte in der Grafik nach oben oder unten ziehen (oder anklicken und Pfeiltasten nutzen) – oder die Werte in der Tabelle eingeben. Hochlauf-Abschläge definieren Sie im Schritt „Projektion“.',
