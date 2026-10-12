@@ -316,6 +316,13 @@ table.ftab tr.paid td{border-bottom:2px solid var(--accent)}
 @media (max-width:900px){.flights,.fcharts{grid-template-columns:1fr}}
 .seashead{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:end;margin-bottom:10px}
 .seasmeta{font-size:12.5px;line-height:1.5;padding-bottom:6px;min-width:0}
+.subcard{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.subhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:10px}
+.subhead input[type=text]{flex:1 1 220px;min-width:0;border:1px solid var(--line-2);border-radius:3px;background:var(--input);padding:6px 8px;font-weight:600}
+.subhead select{border:1px solid var(--line-2);border-radius:3px;background:var(--input);padding:6px 8px;max-width:100%}
+.subval{font-size:12.5px;margin-left:auto}
+.nosub{display:block;font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.mrsub{font-family:var(--sub);font-size:12px;font-weight:700;letter-spacing:.04em;margin:16px 0 8px;color:var(--ink-2)}
 </style>
 </head><body>
 
@@ -473,7 +480,8 @@ function defaults(){
     n:{income:0,rentMode:'var',rentKey:600,rentRooms:25,rentOther:10,tax:0.4,ins:0.5,other:0.3,bldg:0},
     fin:{type:'reno',struct:'owner',
       costs:[{name:'Bau / Renovierung',amt:3200000,afa:25},{name:'FF&E',amt:1100000,afa:8},{name:'Planung & Nebenkosten',amt:450000,afa:25},{name:'Pre-Opening & Marketing',amt:150000,afa:1},{name:'Reserve / Unvorhergesehenes',amt:250000,afa:25}],
-      tax:{on:false,carry:true,manual:false,rate:23,hebe:438,canton:'GR',irap:3.9},
+      tax:{on:false,carry:true,manual:false,rate:23,hebe:438,canton:'GR',irap:3.9,baseTax:0},
+      subs:[],
       build:9,closed:4,partLoss:30,fixClosed:35000,idc:true,
       ekPct:35,rate:4.5,term:20,mode:'free',freeYears:2,after:'ann',sweep:0,existDebt:0,dscrMin:1.25,horizon:20,
       cmp:'A',ist:{year:2026,rev:7000000,ebitda:900000,res:3,rent:0,growth:2},altSrc:null,altName:null,altAt:null},
@@ -1048,7 +1056,15 @@ projektion:()=>({t:'Projektion & Hochlauf',lead:'Abweichungen je Betriebsjahr vo
 const MODRES={
  projekt:()=>{const R=R_();return kv([['Keys',e0(R.keys)],['Öffnungstage',e0(R.days)],['Verfügbare Zimmer',e0(R.avail)],['Stabilisiert',`${yLabel(S.p.stab)} · ${R.cal}`]])},
  zimmer:()=>{const R=R_();return kv([['Belegung',pc(R.occ)],['Zimmer verkauft',e0(R.sold)],['Gästenächte',e0(R.guests)],['Ø Gäste / Tag',e0(R.days?R.guests/R.days:0)]])},
- preise:()=>{const R=R_();return kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])},
+ preise:()=>{const R=R_();
+   const T=S.r.types.length?S.r.types.reduce((m,t)=>(+t.prem<+m.prem?t:m)):{name:'–',prem:0}, pk=pkgNet(S)*S.r.dof*kidMult(S);
+   const gr=x=>(+S.r.rate[x]+(+T.prem||0)-pk)*(1+S.vat.rooms/100)+pk*(1+S.vat.food/100);
+   const w={L:0,M:0,H:0};S.cal.forEach((c,m)=>{if(c.open)w[c.season]+=clamp(+c.days,0,MDAYS[m])*(+S.r.occ[m]||0)});const ws=w.L+w.M+w.H;
+   const avg=ws?(gr('L')*w.L+gr('M')*w.M+gr('H')*w.H)/ws:0;
+   return kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])
+   +`<h4 class="mrsub">Brutto-Verkaufspreis ${esc(T.name)} (günstigste Kategorie) je Zimmer und Nacht</h4>`
+   +kv([['Nebensaison',e0(gr('L'))+' €'],['Zwischensaison',e0(gr('M'))+' €'],['Hauptsaison',e0(gr('H'))+' €'],['Durchschnitt',e0(avg)+' €']])
+   +`<p class="hint" style="margin:8px 0 0">Inkl. MwSt. (Logis ${NF1.format(S.vat.rooms)} %${S.r.pkg!=='RO'?`, Verpflegung ${NF1.format(S.vat.food)} %`:''})${S.r.pkg!=='RO'?' und '+({BB:'Frühstück',HB:'Halbpension'})[S.r.pkg]+' für '+NF1.format(S.r.dof)+' Personen':''}, Preisbasis ${S.p.baseYear}. Durchschnitt gewichtet nach belegten Zimmernächten je Saison.</p>`},
  fnb:()=>{const R=R_();const w=[];R.outl.forEach(o=>Object.entries(o.meals).forEach(([k,m])=>{if(m.util>1)w.push(`${o.name} – ${MEALS.find(x=>x[0]===k)[1]}: ${NF0.format(m.util*100)} %`)}));
    return kv([['F&B Revenue',e0(R.fb.rev)+' €'],['Food / Beverage',`${pc(R.fb.rev?R.fb.food/R.fb.rev:0)} / ${pc(R.fb.rev?R.fb.bev/R.fb.rev:0)}`],['Covers Outlets',e0(R.fb.covers)],['F&B je Gästenacht',e1(R.guests?R.fb.rev/R.guests:0)+' €'],['Wareneinsatz',pc(R.fb.rev?R.dFb.cos/R.fb.rev:0)],['F&B Dept. Profit',pc(R.fb.rev?R.dFb.profit/R.fb.rev:0)]])
    +(w.length?`<div class="warnbox">Nachfrage übersteigt die Sitzplatzkapazität: ${esc(w.join(' · '))}. Umschlag, Sitzplätze oder Capture Rate prüfen.</div>`:'')},
@@ -1343,7 +1359,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.go){const [s,a]=b.dataset.go.split('|');goto(s,a);return}
   if(b.dataset.unit){ui.unit=b.dataset.unit;renderResult();return}
   if(b.dataset.scen){ui.prev=stab();S.scen=b.dataset.scen;RES=computeAll(S);saveLS();renderStep(true);renderScenSeg();toast('Szenario '+S.scen);return}
-  if(b.id==='btnXlsF'||b.id==='btnXlsV'){makeXlsx(b.id==='btnXlsF');return}
+  if(b.id==='btnXlsF'||b.id==='btnXlsV'){const wf=b.id==='btnXlsF';pickSave(xlsxName(wf),XLSX_MIME).then(h=>{if(h!==false)makeXlsx(wf,h)});return}
   if(b.dataset.act==='vatPreset'){const P=VATP[S.p.country];if(P&&P.rooms!=null){S.vat.rooms=P.rooms;S.vat.food=P.food;S.vat.bev=P.bev;S.vat.checked=false}RES=computeAll(S);saveLS();renderStep(true);return}
   if(b.dataset.act==='absPreset'){const P=VATP[S.p.country]||VATP.XX;S.st.vac=P.vac;S.st.hol=P.hol;RES=computeAll(S);saveLS();renderStep(true);return}
   if(b.dataset.act==='vatOk'){S.vat.checked=true;S.vat.checkedFor=S.p.country;S.vat.checkedAt=new Date().toLocaleDateString('de-AT');saveLS();renderStep(true);toast('MwSt.-Sätze bestätigt');return}
@@ -1351,8 +1367,8 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='add'){const arr=get(b.dataset.arr);arr.push(TEMPL[b.dataset.arr](b.dataset.dept));RES=computeAll(S);saveLS();renderStep(true);return}
   if(b.dataset.act==='del'){const arr=get(b.dataset.arr);if(b.dataset.arr==='f.outlets'){const o=arr[+b.dataset.i];if(o)S.st.pos.forEach(p=>{if(p.dept==='OUT:'+o.id)p.dept='FBADM'})}if(b.dataset.arr==='r.types'&&arr.length<=1){toast('Mindestens eine Zimmerkategorie ist nötig.');return}
     arr.splice(+b.dataset.i,1);RES=computeAll(S);saveLS();renderStep(true);return}
-  if(b.id==='btnPdf'||b.id==='btnPdfTop'){makePdf();return}
-  if(b.id==='btnSave'){saveFile(fileBase()+'_Projekt.json',JSON.stringify(S,null,1),'application/json');return}
+  if(b.id==='btnPdf'||b.id==='btnPdfTop'){pickSave(pdfName(),'application/pdf').then(h=>{if(h!==false)makePdf(h)});return}
+  if(b.id==='btnSave'){const n=fileBase()+'_Projekt.json';pickSave(n,'application/json').then(h=>{if(h!==false)saveFile(n,JSON.stringify(S,null,1),'application/json',h)});return}
   if(b.id==='btnLoad'){$('#fileIn').value='';$('#fileIn').click();return}
   if(b.id==='btnReset'){showResetBar();return}
   if(b.id==='rsEx'){S=defaults();afterLoad('Beispielprojekt geladen');return}
@@ -1373,7 +1389,20 @@ const fileBase=()=>(S.p.name||'Projekt').replace(/[^\wÄÖÜäöüß\- ]+/g,'').
 
 /* ---------- Dateien speichern ---------- */
 const DLp=(async()=>{try{if(window.claude&&typeof window.claude.use==='function')return await window.claude.use('downloads')}catch(e){}return null})();
-async function saveFile(name,data,mime){
+const XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const pdfName=()=>`${fileBase()}_USALI_${S.scen||'Base'}_${RES[(ui.dy||+S.p.stab)-1].cal}.pdf`;
+const xlsxName=wf=>`${fileBase()}_PL_${S.scen||'Base'}_${wf?'Formeln':'Werte'}.xlsx`;
+const FTYPES={json:'Projektdatei (JSON)',pdf:'PDF-Dokument',xlsx:'Excel-Arbeitsmappe'};
+/* Speicherort abfragen: Dialog des Betriebssystems (Chrome / Edge). Liefert Handle, null = kein Dialog verfügbar, false = abgebrochen */
+async function pickSave(name,mime){
+  let top=false;try{top=window.self===window.top}catch(e){}
+  if(!top||typeof window.showSaveFilePicker!=='function')return null;
+  const ext=name.split('.').pop();
+  try{return await window.showSaveFilePicker({suggestedName:name,types:[{description:FTYPES[ext]||'Datei',accept:{[mime]:['.'+ext]}}]})}
+  catch(e){if(e&&e.name==='AbortError'){toast('Speichern abgebrochen');return false}return null}
+}
+async function saveFile(name,data,mime,handle){
+  if(handle){try{const w=await handle.createWritable();await w.write(data instanceof Blob?data:new Blob([data],{type:mime}));await w.close();toast('Gespeichert: '+handle.name);return}catch(e){toast('Speichern am gewählten Ort nicht möglich, Datei wird heruntergeladen')}}
   const DL=await DLp;
   if(DL){try{await DL.save({filename:name,data});toast('Gespeichert: '+name)}catch(e){if(e&&e.code==='declined')toast('Speichern abgebrochen');else if(e&&e.code==='rate_limited')toast('Bitte kurz warten und erneut versuchen');else toast('Speichern hier nicht möglich ('+((e&&e.code)||'Fehler')+')')}return}
   const blob=data instanceof Blob?data:new Blob([data],{type:mime});const url=URL.createObjectURL(blob);
@@ -1414,7 +1443,7 @@ function serieOf(V,Rs,key){
   const g=1+(+V.idx.rev||0)/100, first=Rs[0].cal, last=Rs[Rs.length-1].cal;
   return cal=>{if(cal<first)return key(Rs[0])/Math.pow(g,first-cal);if(cal>last)return key(Rs[Rs.length-1])*Math.pow(g,cal-last);return key(Rs[cal-first])};
 }
-function finCompute(){
+function finCompute(opt){
   const F=S.fin, plan=variantOf('neu'), own=F.struct!=='propco', reno=F.type==='reno';
   const warn=[];
   const Rp=plan===S?RES:computeAll(plan,S.scen);
@@ -1433,51 +1462,92 @@ function finCompute(){
       else{const Rb=B===S?RES:computeAll(B,S.scen);bestCF=serieOf(B,Rb,kCF);bestName=F.cmp==='B'?'Bestandsvariante':'Datei '+(F.altName||'')}}
   }
   const cal0=(+plan.p.openYear)-1, H=clamp(Math.round(+F.horizon||20),5,40);
+  const T=F.tax||{}, taxOn=!!T.on;
+  // Förderungen
+  const SUBS=opt&&opt.noSubs?[]:(F.subs||[]).map((u,i)=>Object.assign({i},u)).filter(u=>!(opt&&opt.excl===u.i));
+  const subAmt=u=>u.kind==='grant'?(+u.base||0)*(+u.pct||0)/100:u.kind==='credit'?Math.min((+u.base||0)*(+u.pct||0)/100,(+u.cap>0?+u.cap:Infinity)):u.kind==='extra'?(+u.base||0)*Math.max(0,(+u.pct||0)-100)/100:u.kind==='loan'?(+u.amt||0):0;
+  const grants=SUBS.filter(u=>u.kind==='grant'), g0=sum(grants.filter(u=>!(+u.payYear>0)).map(subAmt));
+  const gLater=y=>sum(grants.filter(u=>Math.round(+u.payYear)===y).map(subAmt));
+  if(SUBS.some(u=>u.kind==='credit'||u.kind==='extra')&&!taxOn)warn.push(['Steuerabsetzbetrag und Mehrabschreibung wirken nur, wenn die Ertragsteuern eingeschaltet sind.','finanz|sec-ftax']);
   // Investition
   const costs=sum(F.costs.map(c=>c.amt));
   const b0=reno?bestCF(cal0):0, bm=Math.max(0,+F.build||0), cl=reno?clamp(+F.closed||0,0,bm||+F.closed||0):0;
   const loss=reno?Math.max(0,b0)/12*(cl+Math.max(0,bm-cl)*clamp(+F.partLoss||0,0,100)/100)+(own?(+F.fixClosed||0)*cl:0):0;
-  const N0=costs+loss, e=clamp(+F.ekPct||0,0,100)/100, r=(+F.rate||0)/100, t=bm/12;
+  const N0=costs+loss, Nf=Math.max(0,N0-g0), e=clamp(+F.ekPct||0,0,100)/100, r=(+F.rate||0)/100, t=bm/12;
   const den=1-(1-e)*r*t/2;
-  const L=F.idc&&den>0?N0*(1-e)/den:N0*(1-e);
-  const idc=F.idc?L*r*t/2:0, total=N0+idc, EK=total-L;
-  // Kreditplan
+  const L=F.idc&&den>0?Nf*(1-e)/den:Nf*(1-e);
+  const idc=F.idc?L*r*t/2:0, total=N0+idc, EK=Nf+idc-L;
+  // Kredite: geförderte Kredite ersetzen einen Teil des Bankkredits
   const term=Math.max(1,Math.round(+F.term||1));
   const free=F.mode==='free'?clamp(Math.round(+F.freeYears||0),0,term-1):0;
   const lin=F.mode==='lin'||(F.mode==='free'&&F.after==='lin');
   const sw=clamp(+F.sweep||0,0,100)/100, ex=+F.existDebt||0, dmin=+F.dscrMin||1.2;
-  // Ertragsteuern: Abschreibung je Kostenposition, Bauzeitzinsen über die längste Dauer
-  const T=F.tax||{}, taxOn=!!T.on;
+  let subL=SUBS.filter(u=>u.kind==='loan').map(u=>({u,bal:subAmt(u),A:null,r:(+u.rate||0)/100,term:Math.max(1,Math.round(+u.term||1)),free:Math.max(0,Math.round(+u.free||0)),ben:0}));
+  const subSum=sum(subL.map(x=>x.bal));
+  if(subSum>L+0.5){warn.push([`Geförderte Kredite (${e0(subSum)} €) sind höher als der Kreditbedarf (${e0(L)} €). Sie werden anteilig gekürzt.`,'finanz|sec-fsub']);subL.forEach(x=>x.bal*=L/subSum)}
+  const Lsub=sum(subL.map(x=>x.bal)), Lb=Math.max(0,L-Lsub);
+  const zins=SUBS.filter(u=>u.kind==='zins');
+  // Abschreibung: Kostenpositionen, Bauzeitzinsen, Zuschüsse mindern die Basis
   const afaL=F.costs.map(c=>({amt:+c.amt||0,n:Math.max(1,Math.round(+(c.afa!=null?c.afa:afaGuess(c.name))||1))}));
   const nMax=Math.max(1,...afaL.map(a=>a.n)); afaL.push({amt:idc,n:nMax});
+  grants.forEach(u=>afaL.push({amt:-subAmt(u),n:Math.max(1,Math.round(+u.afaN||nMax))}));
   const afaOf=y=>sum(afaL.map(a=>y<=a.n?a.amt/a.n:0));
-  let carry=0, taxSum=0;
-  let bal=L,A=null,linP=null,cum=-EK,payback=null,paidOff=null;
-  const rows=[{y:0,cal:cal0,bal:L,loss,idc,ek:EK}];
+  const credits=SUBS.filter(u=>u.kind==='credit').map(u=>({u,tot:subAmt(u),n:Math.max(1,Math.round(+u.years||1)),used:0,lost:0}));
+  const extras=SUBS.filter(u=>u.kind==='extra').map(u=>({u,tot:subAmt(u),n:Math.max(1,Math.round(+u.years||1)),rE:u.rateE==null||u.rateE===''?null:(+u.rateE)/100,ben:0,unused:0}));
+  const zinsBen=zins.map(()=>0), grantBen=grants.map(subAmt);
+  let carry=0, taxSum=0, creditSum=0, extraSum=0;
+  let bal=Lb,A=null,linP=null,cum=-EK,payback=null,paidOff=null;
+  const rows=[{y:0,cal:cal0,bal:L,loss,idc,ek:EK,grant0:g0}];
   const cfs=[-EK];
   for(let y=1;y<=H;y++){
     const cal=cal0+y, pc_=planCF(cal), bc=reno?bestCF(cal):0, mehr=pc_-bc;
-    const int=bal*r; let pr=0;
+    // Bankkredit mit Zinszuschuss
+    let pp=0;zins.forEach((u,k)=>{if(y<=Math.round(+u.years||0)){const p=Math.min((+u.pp||0)/100,r-pp);if(p>0){pp+=p;zinsBen[k]+=bal*p}}});
+    const intB=bal*(r-pp); let pr=0;
     if(bal>0.5){
       if(y<=free)pr=0;
       else{
         if(A==null&&linP==null){const n=Math.max(1,term-free);if(lin)linP=bal/n;else A=r?bal*r/(1-Math.pow(1+r,-n)):bal/n}
-        pr=lin?linP:A-int; if(y>=term)pr=bal; pr=clamp(pr,0,bal);
+        pr=lin?linP:A-bal*r; if(y>=term)pr=bal; pr=clamp(pr,0,bal);
       }
     }
-    const ds=int+pr;
-    const afa=afaOf(y); let taxable=mehr-int-afa, tax=0;
+    // geförderte Kredite
+    let intS=0,prS=0;
+    subL.forEach(x=>{if(x.bal<0.5)return;const i=x.bal*x.r;let p=0;
+      if(y>x.free){if(x.A==null){const n=Math.max(1,x.term-x.free);x.A=x.r?x.bal*x.r/(1-Math.pow(1+x.r,-n)):x.bal/n}p=y>=x.term?x.bal:clamp(x.A-i,0,x.bal)}
+      x.ben+=x.bal*Math.max(0,r-x.r);intS+=i;prS+=p;x.bal-=p});
+    const int=intB+intS, ds=int+pr+prS;
+    // Ertragsteuern auf Unternehmensebene (bisherige Steuerlast als Basis)
+    const afa=afaOf(y);
     const RT=citRate(plan,cal,own?planRev(cal):pc_), tr=clamp(RT.rate,0,60)/100;
-    if(taxOn){if(taxable<0){if(T.carry!==false)carry+=-taxable}else{const u=T.carry!==false?Math.min(carry,taxable):0;carry-=u;tax=(taxable-u)*tr}}
-    taxSum+=tax;
+    const taxable=mehr-int-afa; let tax=0, cUse=0, xUse=0;
+    if(taxOn){
+      const B=Math.max(0,+T.baseTax||0), bp=tr>0?B/tr:0;
+      let tot=bp+taxable;
+      if(tot<0){if(T.carry!==false)carry+=-tot;tot=0}else if(T.carry!==false){const u=Math.min(carry,tot);carry-=u;tot-=u}
+      let ded=0,decT=0;extras.forEach(x=>{if(y<=x.n){const d=x.tot/x.n;ded+=d}});
+      const usable=Math.min(ded,tot); let rest=usable;
+      extras.forEach(x=>{if(y<=x.n){const d=x.tot/x.n, part=ded?usable*d/ded:0, rr=x.rE==null?tr:x.rE;x.ben+=part*rr;x.unused+=d-part;decT+=part*rr}});
+      if(T.carry!==false)carry+=ded-usable;
+      xUse=decT; tot-=usable;
+      let comp=Math.max(0,(tot+usable)*tr-decT);
+      let cr=0;credits.forEach(x=>{if(y<=x.n)cr+=x.tot/x.n});
+      cUse=Math.min(cr,comp);credits.forEach(x=>{if(y<=x.n){const c=x.tot/x.n,part=cr?cUse*c/cr:0;x.used+=part;x.lost+=c-part}});
+      comp-=cUse;
+      tax=comp-B;
+    }
+    taxSum+=tax;creditSum+=cUse;extraSum+=xUse;
     let surplus=mehr-ds-tax;
-    const extra=bal-pr>0.5?Math.min(bal-pr,Math.max(0,surplus)*sw):0;
-    surplus-=extra; bal=Math.max(0,bal-pr-extra);
-    if(bal<0.5&&paidOff==null&&L>0)paidOff=y;
+    // spätere Zuschüsse tilgen den Bankkredit, Rest bleibt den Eigentümern
+    const gi=gLater(y); let gRep=0; if(gi>0){gRep=Math.min(gi,bal-pr);surplus+=gi-gRep}
+    const extra=bal-pr-gRep>0.5?Math.min(bal-pr-gRep,Math.max(0,surplus)*sw):0;
+    surplus-=extra; bal=Math.max(0,bal-pr-gRep-extra);
+    const balAll=bal+sum(subL.map(x=>x.bal));
+    if(balAll<0.5&&paidOff==null&&L>0)paidOff=y;
     const dscr=(ds+ex)>0.5?pc_/(ds+ex):null;
     const prev=cum; cum+=surplus;
     if(payback==null&&EK>0&&cum>=0&&surplus>0)payback=y-1+(-prev)/surplus;
-    rows.push({y,cal,plan:pc_,best:bc,mehr,int,pr,extra,ds,dscr,surplus,afa,taxable,tax,carry,taxRate:RT.rate,taxTxt:RT.txt,cum:cum+EK,bal,opco:own?null:opco(cal),rev:planRev(cal),total:pc_-ds-extra-ex});
+    rows.push({y,cal,plan:pc_,best:bc,mehr,int,pr:pr+prS,extra:extra+gRep,ds:ds,dscr,surplus,afa,taxable,tax,carry,taxRate:RT.rate,taxTxt:RT.txt,cum:cum+EK,bal:balAll,grantIn:gi,credit:cUse,xben:xUse,opco:own?null:opco(cal),rev:planRev(cal),total:pc_-ds-extra-ex});
     cfs.push(surplus);
   }
   if(EK<=0)payback=0;
@@ -1487,8 +1557,23 @@ function finCompute(){
   const firstLow=loanRows.find(x=>x.dscr!=null&&x.dscr<dmin);
   const irr=EK>0?finIrr(cfs):null;
   const avgYield=EK>0?sum(rows.slice(1).map(x=>x.surplus))/H/EK:null;
-  return {taxOn,taxSum,own,reno,H,cal0,costs,loss,b0,idc,total,EK,L,rows,minD,firstLow,dmin,payback,paidOff,irr,avgYield,warn,bestName,bestOk,free,lin,term,
+  // Vorteil je Förderung
+  const subRes=[];
+  grants.forEach((u,k)=>subRes.push({i:u.i,name:u.name,kind:u.kind,nominal:grantBen[k],value:grantBen[k],note:+u.payYear>0?`Auszahlung ${cal0+Math.round(+u.payYear)}, tilgt Kredit`:'Auszahlung in der Bauphase, senkt den Finanzierungsbedarf'}));
+  credits.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'credit',nominal:x.tot,value:x.used,note:!taxOn?'Ertragsteuern ausgeschaltet':x.lost>1?`${e0(x.lost)} € verfallen, weil die Steuerlast zu gering ist`:'voll genutzt'}));
+  extras.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'extra',nominal:x.tot,value:x.ben,unusedTxt:x.unused>1?`; ${e0(x.unused)} € zunächst ohne Gewinn, wirken über den Verlustvortrag später`:'',note:!taxOn?'Ertragsteuern ausgeschaltet':''}));
+  subL.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'loan',nominal:subAmt(x.u),value:x.ben,note:'Zinsersparnis gegenüber dem Bankzins'}));
+  zins.forEach((u,k)=>subRes.push({i:u.i,name:u.name,kind:'zins',nominal:null,value:zinsBen[k],note:'Zinsersparnis auf den Bankkredit'}));
+  subRes.sort((a,b)=>a.i-b.i);
+  const R={taxOn,taxSum,creditSum,extraSum,own,reno,H,cal0,costs,loss,b0,idc,total,EK,L,Lb,Lsub,g0,rows,minD,firstLow,dmin,payback,paidOff,irr,avgYield,warn,bestName,bestOk,free,lin,term,subRes,
     bal10:(rows[Math.min(10,H)]||{}).bal,planName:'Planfall'};
+  if(!opt&&SUBS.length){R.noSub=finCompute({noSubs:true});
+    // Steuerwirkung je Förderung: Vergleich mit einer Rechnung ohne diese Förderung
+    R.subRes.forEach(x=>{const o=finCompute({excl:x.i});const d=o.taxSum-taxSum;x.taxEff=d;
+      x.value=(x.kind==='grant'?x.nominal:x.kind==='loan'||x.kind==='zins'?x.value:0)+d;
+      if(x.kind==='extra')x.note=`${e0(x.nominal)} € zusätzliche Abschreibung, Steuerersparnis im Betrachtungszeitraum`+(x.unusedTxt||'');
+      if((x.kind==='grant'||x.kind==='loan'||x.kind==='zins')&&Math.abs(d)>1)x.note+=` · Steuerwirkung ${d>0?'+':''}${e0(d)} €`});}
+  return R;
 }
 function FIN(){if(!ui.finC)ui.finC=finCompute();return ui.finC}
 
@@ -1507,13 +1592,14 @@ function finLights(F){
   ];
 }
 function finLightsHtml(F){
-  return `<div class="flights">${finLights(F).map(([t,v,c,s,h])=>`<div class="flight ${c}"><small>${t}</small><strong>${v}</strong><span class="pill ${c}">${s}</span><p>${h}</p></div>`).join('')}</div>`;
+  const N=F.noSub, nl=N?finLights(N):null;
+  return `<div class="flights">${finLights(F).map(([t,v,c,s,h],k)=>`<div class="flight ${c}"><small>${t}</small><strong>${v}</strong><span class="pill ${c}">${s}</span>${nl?`<span class="nosub">ohne Förderung: <b>${nl[k][1]}</b></span>`:''}<p>${h}</p></div>`).join('')}</div>`;
 }
 function finKv(F){
   return kv([['Gesamtinvestition',e0(F.total/1000)+' T€'],['davon Eigenkapital',e0(F.EK/1000)+' T€'],['davon Kredit',e0(F.L/1000)+' T€'],
     ...(F.reno?[['Ertragsausfall Bauphase',e0(F.loss/1000)+' T€']]:[]),['Bauzeitzinsen',e0(F.idc/1000)+' T€'],
     ['Kredit getilgt',F.paidOff?`${F.cal0+F.paidOff} (J${F.paidOff})`:`Rest ${e0((F.rows[F.H].bal||0)/1000)} T€`],['Restschuld nach 10 Jahren',e0((F.bal10||0)/1000)+' T€'],
-    ['Ø Überschuss / Eigenkapital',F.avgYield==null?'–':pc(F.avgYield)],...(F.taxOn?[['Ertragsteuern gesamt',e0(F.taxSum/1000)+' T€']]:[])]);
+    ['Ø Überschuss / Eigenkapital',F.avgYield==null?'–':pc(F.avgYield)],...(F.taxOn?[['Ertragsteuern gesamt',e0(F.taxSum/1000)+' T€']]:[]),...(F.subRes.length?[['Förderungen, tatsächlicher Vorteil',e0(sum(F.subRes.map(x=>x.value))/1000)+' T€']]:[])]);
 }
 
 /* ---------- Diagramme ---------- */
@@ -1558,7 +1644,7 @@ function finTable(F,compact){
     <th title="${F.own?'EBITDA nach FF&E-Rücklage, vor Finanzierung':'Pachteinnahme der Eigentümergesellschaft'}">${lblCF}<br><span class="th2">Planfall</span></th>
     ${F.reno?`<th>${lblCF}<br><span class="th2">ohne Renov.</span></th>`:''}<th>Mehr-<br>ertrag</th>
     <th title="Zinsen + Tilgung inkl. Sondertilgung">Bankrate<br><span class="th2">Zins · Tilgung</span></th><th title="Deckung der Bankrate: Cashflow ÷ (Bankrate + bestehender Schuldendienst)">Deckung</th>
-    ${F.taxOn?'<th title="Ertragsteuer auf den Mehrgewinn (Mehrertrag − Zinsen − Abschreibung)">Steuern<br><span class="th2">Satz</span></th>':''}<th title="Mehrertrag minus Bankrate${F.taxOn?' minus Steuern':''}">Über-<br>schuss</th><th>EK zurück<br><span class="th2">kumuliert</span></th><th>Rest-<br>schuld</th>
+    ${F.taxOn?'<th title="Ertragsteuer auf den Mehrgewinn (Mehrertrag − Zinsen − Abschreibung)">Steuern<br><span class="th2">mehr / weniger · Satz</span></th>':''}<th title="Mehrertrag minus Bankrate${F.taxOn?' minus Steuern':''}">Über-<br>schuss</th><th>EK zurück<br><span class="th2">kumuliert</span></th><th>Rest-<br>schuld</th>
     ${F.own?'':'<th title="EBITDA der Betreibergesellschaft nach Pacht und Rücklage">OpCo<br><span class="th2">nach Pacht</span></th>'}</tr></thead><tbody>
     <tr class="y0"><td>${r0.cal}</td><td colspan="${F.reno?5:4}" style="text-align:left">Bau · Investition ${e0(F.total)} € · Eigenkapital ${e0(F.EK)} €${F.reno?` · Ertragsausfall ${e0(F.loss)} €`:''}</td>
       ${F.taxOn?'<td></td>':''}<td class="neg">−${e0(F.EK)}</td><td>0</td><td>${e0(F.L)}</td>${F.own?'':'<td></td>'}</tr>
@@ -1571,13 +1657,14 @@ function finTable(F,compact){
 function finOutHtml(){
   const F=FIN();
   return `${F.warn.map(([w,go])=>`<div class="warnbox">${esc(w)} <button type="button" class="lnk" data-go="${go}"><b>Zur Eingabe</b></button></div>`).join('')}
-   ${finLightsHtml(F)}${finKv(F)}${finCharts(F)}
+   ${finLightsHtml(F)}${finKv(F)}${finSubTable(F)}${finCharts(F)}
    <h3 class="fh3">Jahr für Jahr</h3>${finTable(F,false)}
    <p class="note">Werte in EUR, Szenario ${esc(S.scen||'Base')}. ${F.own?'Cashflow aus Betrieb = EBITDA nach FF&E-Rücklage; eine im P&L hinterlegte Pacht wird bei Eigentümer = Betreiber nicht abgezogen.':'PropCo erhält die Pacht laut P&L und bedient daraus den Kredit; die OpCo-Spalte zeigt, ob der Betreiber die Pacht tragen kann.'} Jahre nach dem 10. Betriebsjahr werden mit dem Umsatzindex fortgeschrieben. ${F.taxOn?'Ertragsteuern auf den Mehrgewinn mit Verlustvortrag; Deckung der Bankrate vor Steuern.':'Ohne Ertragsteuern.'}</p>`;
 }
 
 /* ---------- Eingabeschritt ---------- */
 STEPS.push(['finanz','Finanzierung & Rückzahlung']);
+TEMPL['fin.subs']=()=>({name:'Neue Förderung',kind:'grant',base:100000,pct:20,payYear:1,afaN:20,cap:0,years:10,rateE:null,amt:100000,rate:1,term:15,free:2,pp:1});
 TEMPL['fin.costs']=()=>({name:'Neue Position',amt:0,afa:10});
 function taxRegionInputs(){const c=S.p.country,T=S.fin.tax;if(T.manual)return '';
   if(c==='DE')return NUM('fin.tax.hebe','Gewerbesteuer-Hebesatz','%',{tip:'Hebesatz der Gemeinde. Vorbelegt: Durchschnitt der Gemeinden ab 20.000 Einwohnern 2025 (DIHK): 438 %'});
@@ -1636,19 +1723,52 @@ VIEWS.finanz=()=>{const F=S.fin, reno=F.type==='reno';
         ${NUM('fin.dscrMin','Deckungsvorgabe der Bank','× Bankrate',{tip:'Üblich sind 1,2 bis 1,3: Der Cashflow soll die Rate um 20 bis 30 % übersteigen.'})}${NUM('fin.horizon','Betrachtungszeitraum','Jahre')}</div>`)
    +block('sec-ftax','Ertragsteuern','Steuer auf den zusätzlichen Gewinn: Mehrertrag minus Zinsen minus Abschreibung, multipliziert mit dem Steuersatz. Der Steuersatz richtet sich automatisch nach dem Land aus Schritt 1 und gilt je Kalenderjahr.',
      `<div style="margin-bottom:12px">${CHK('fin.tax.on','Ertragsteuern berücksichtigen',{rr:1})}</div>
-      ${F.tax.on?`<div class="grid">${taxRegionInputs()}<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.tax.carry','Verluste in Folgejahre vortragen')}</div>
+      ${F.tax.on?`<div class="grid">${taxRegionInputs()}<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.tax.carry','Verluste in Folgejahre vortragen')}</div>${NUM('fin.tax.baseTax','Bisherige Steuerlast des Betriebs','€ p.a.',{tip:'Ertragsteuer, die der Betrieb heute ohne das Vorhaben zahlt. Damit können Verluste des Vorhabens, Mehrabschreibungen und Steuerabsetzbeträge auch gegen die laufende Steuer verrechnet werden. 0 = nur der Mehrgewinn wird betrachtet.'})}
         <div style="display:flex;align-items:end;padding-bottom:6px">${CHK('fin.tax.manual','Steuersatz manuell',{rr:1})}</div>${F.tax.manual||!VATP[S.p.country]||S.p.country==='XX'?NUM('fin.tax.rate','Steuersatz','%'):''}</div>
         <p class="hint" style="margin-top:10px">${calc('finTaxInfo')}</p>
         <p class="hint" style="margin-top:4px">Abschreibungsdauer je Kostenposition in der Tabelle unter Investition. Bauzeitzinsen werden über die längste Dauer abgeschrieben. Keine Steuerberatung: Bitte Sätze und Abschreibungsdauern im konkreten Projekt mit der Steuerberatung abstimmen.</p>`:''}`)
+   +block('sec-fsub','Förderungen','Zuschüsse senken den Finanzierungsbedarf, geförderte Kredite ersetzen einen Teil des Bankkredits, steuerliche Förderungen senken die Ertragsteuer. Das Ergebnis zeigt den tatsächlichen Vorteil jeder Förderung und den Vergleich mit und ohne Förderung.',subsHtml())
    +`<section class="block fout" id="sec-fres"><h2>Ergebnis</h2><div id="finOut">${finOutHtml()}</div></section>`};
 };
 MODRES.finanz=()=>'';
+
+
+/* ---------- Förderungen ---------- */
+const SUBKIND=[['grant','Zuschuss (Barzuschuss)'],['credit','Steuerabsetzbetrag (Steuergutschrift)'],['extra','Mehrabschreibung (Super-/Hyperabschreibung)'],['loan','Geförderter Kredit'],['zins','Zinszuschuss auf den Bankkredit']];
+const SUBHINT={grant:'Anteil der förderbaren Investition als Zuschuss. Auszahlung 0 = in der Bauphase, sonst im angegebenen Betriebsjahr (tilgt dann den Bankkredit). Der Zuschuss mindert die Abschreibungsbasis.',
+  credit:'Prozentsatz der förderbaren Investition, verteilt auf die angegebenen Jahre, direkt von der zu zahlenden Steuer abgezogen. Nur nutzbar, soweit Steuer anfällt; nicht genutzte Beträge verfallen.',
+  extra:'Abschreibung gesamt in Prozent der Investition (z. B. 180 %). Die zusätzlichen 80 % senken den zu versteuernden Gewinn. Eigener Steuersatz möglich (Italien: nur IRES 24 %).',
+  loan:'Ersetzt diesen Betrag des Bankkredits. Eigener Zins, eigene Laufzeit, tilgungsfreie Jahre, danach Annuität.',
+  zins:'Senkt den Zinssatz des Bankkredits um diese Prozentpunkte für die angegebenen Jahre.'};
+function subsHtml(){
+  const L=S.fin.subs||[];
+  const card=(u,i)=>{const p=`fin.subs.${i}.`,k=u.kind;
+    const f=k==='grant'?NUM(p+'base','Förderbare Investition','€')+NUM(p+'pct','Zuschuss','%')+NUM(p+'payYear','Auszahlung','Betriebsjahr',{tip:'0 = während der Bauphase, 1 = erstes Betriebsjahr usw.'})+NUM(p+'afaN','Abschreibung der Anlage','Jahre')
+      :k==='credit'?NUM(p+'base','Förderbare Investition','€')+NUM(p+'pct','Absetzbetrag','%')+NUM(p+'cap','Höchstbetrag','€',{tip:'0 = ohne Höchstbetrag'})+NUM(p+'years','Verteilt auf','Jahre')
+      :k==='extra'?NUM(p+'base','Investition','€')+NUM(p+'pct','Abschreibung gesamt','%')+NUM(p+'years','Über','Jahre')+NUM(p+'rateE','Steuersatz dafür','%',{nul:1,tip:'Leer = allgemeiner Steuersatz. Für Italien 24 % (nur IRES).'})
+      :k==='loan'?NUM(p+'amt','Kreditbetrag','€')+NUM(p+'rate','Zinssatz','% p.a.')+NUM(p+'term','Laufzeit','Jahre')+NUM(p+'free','Tilgungsfreie Jahre','Jahre')
+      :NUM(p+'pp','Zinszuschuss','%-Punkte')+NUM(p+'years','Dauer','Jahre');
+    return `<div class="subcard"><div class="subhead">${cT(p+'name',{al:'Name der Förderung'})}${cS(p+'kind',SUBKIND,{rr:1,al:'Förderart'})}<span class="subval">${calc('subVal',i)}</span>${del('fin.subs',i)}</div>
+      <div class="grid">${f}</div><p class="hint" style="margin:8px 0 0">${SUBHINT[k]||''}</p></div>`};
+  return `${L.length?L.map(card).join(''):'<p class="hint">Noch keine Förderungen erfasst.</p>'}
+    <div class="btnrow" style="margin-top:10px">${add('fin.subs','Förderung')}<button class="addbtn" type="button" data-fin="subEx">+ Beispiel: Dach, PV, Klima (Italien)</button></div>`;
+}
+CALC.subVal=i=>{const F=FIN(),x=F.subRes.find(r=>r.i===+i);if(!x)return '';return `Vorteil <b>${e0(x.value)} €</b>${x.nominal!=null&&Math.abs(x.nominal-x.value)>1?` <span class="muted">von ${e0(x.nominal)} €</span>`:''}`};
+function finSubTable(F){
+  if(!F.subRes.length)return '';
+  const kn=k=>(SUBKIND.find(x=>x[0]===k)||['',''])[1].replace(/ \(.*\)/,'');
+  const nm=F.subRes.filter(x=>x.nominal!=null);
+  return `<h3 class="fh3">Förderungen</h3><div class="tw"><table class="t ftab"><thead><tr><th>Förderung</th><th style="text-align:left">Art</th><th title="Zuschussbetrag, Absetzbetrag, zusätzliche Abschreibung bzw. Kreditbetrag">Nennwert</th><th title="Was die Förderung im Betrachtungszeitraum tatsächlich bringt">Tatsächlicher<br>Vorteil</th><th style="text-align:left">Hinweis</th></tr></thead><tbody>
+    ${F.subRes.map(x=>`<tr><td>${esc(x.name)}</td><td style="text-align:left">${kn(x.kind)}</td><td>${x.nominal==null?'–':e0(x.nominal)}</td><td><b>${e0(x.value)}</b></td><td style="text-align:left;white-space:normal;min-width:220px" class="muted">${esc(x.note)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td colspan="3">Summe tatsächlicher Vorteil</td><td>${e0(sum(F.subRes.map(x=>x.value)))}</td><td></td></tr></tfoot></table></div>
+    <p class="note">Nennwert und Vorteil sind verschieden: Eine Mehrabschreibung ist ein Abzug vom Gewinn und bringt nur den Steueranteil. Steuerabsetzbeträge wirken nur, soweit Steuer anfällt.</p>`;
+}
 
 /* ---------- Ergebnisseite ---------- */
 function finResultSection(){
   const F=FIN();
   return `<div class="usali" id="finResult"><div class="usali-h"><h2>Finanzierung & Rückzahlung</h2><small>${F.reno?'Renovierung, Vergleich mit '+esc(F.bestName):'Neubau'} · ${F.own?'Eigentümer = Betreiber':'PropCo / OpCo'} · <button type="button" class="lnk" data-step="finanz">Eingaben</button></small></div>
-   <div style="padding:14px 16px">${F.warn.map(([w,go])=>`<div class="warnbox" style="margin:0 0 10px">${esc(w)} <button type="button" class="lnk" data-go="${go}"><b>Zur Eingabe</b></button></div>`).join('')}${finLightsHtml(F)}${finKv(F)}${finCharts(F)}${finTable(F,true)}</div></div>`;
+   <div style="padding:14px 16px">${F.warn.map(([w,go])=>`<div class="warnbox" style="margin:0 0 10px">${esc(w)} <button type="button" class="lnk" data-go="${go}"><b>Zur Eingabe</b></button></div>`).join('')}${finLightsHtml(F)}${finKv(F)}${finSubTable(F)}${finCharts(F)}${finTable(F,true)}</div></div>`;
 }
 
 /* ---------- Interaktion ---------- */
@@ -1660,6 +1780,12 @@ document.addEventListener('click',e=>{
     const c=pickOp(S);c.proj.rows.forEach(r=>{r.occ=0;r.adr=0;r.ext=0});c.sc=JSON.parse(JSON.stringify(S.sc));
     S.alt=c;S.fin.altSrc='B';S.fin.altName=null;S.fin.altAt=new Date().toLocaleDateString('de-AT');
     ui.finC=null;saveLS();renderStep(true);toast('Bestand angelegt. Mit „Bestand bearbeiten“ ändern Sie ihn.');return}
+  if(a==='subEx'){S.fin.subs.push(
+     {name:'Dach – Ecobonus',kind:'credit',base:300000,pct:30,cap:60000,years:10,payYear:1,afaN:20,rateE:null,amt:0,rate:1,term:15,free:2,pp:1},
+     {name:'PV-Anlage – Zuschuss',kind:'grant',base:150000,pct:20,payYear:1,afaN:20,cap:0,years:10,rateE:null,amt:0,rate:1,term:15,free:2,pp:1},
+     {name:'Klimatisierung – Hyperabschreibung',kind:'extra',base:134000,pct:180,years:10,rateE:24,payYear:1,afaN:10,cap:0,amt:0,rate:1,term:15,free:2,pp:1});
+    if(!S.fin.tax.on){S.fin.tax.on=true;toast('Beispiel eingefügt, Ertragsteuern eingeschaltet')}else toast('Beispiel eingefügt');
+    RES=computeAll(S);ui.finC=null;saveLS();renderStep(true);return}
   if(a==='file'){const f=$('#finFile');if(f){f.value='';f.click()}return}
 });
 document.addEventListener('change',e=>{
@@ -1888,7 +2014,7 @@ async function logoPng(){
   }catch(e){return null}
 }
 const pdfTxt=s=>String(s??'').replace(/€/g,'EUR').replace(/[–—]/g,'-').replace(/[^\x00-\xFF]/g,'');
-async function makePdf(){
+async function makePdf(handle){
   const J=window.jspdf;
   if(!J||!J.jsPDF){toast('Die PDF-Bibliothek ist nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.');return}
   toast('PDF wird erstellt …');
@@ -2016,7 +2142,7 @@ async function makePdf(){
      ['Gesamtinvestition',`${e0(F.total)} € (Kosten ${e0(F.costs)}${F.reno?` · Ertragsausfall ${e0(F.loss)}`:''} · Bauzeitzinsen ${e0(F.idc)})`],
      ['Eigenkapital / Kredit',`${e0(F.EK)} € (${e1(fs.ekPct)} %) / ${e0(F.L)} €`],
      ['Kredit',`${e1(fs.rate)} % Zins · ${fs.term} Jahre · ${modeTxt}${+fs.sweep?` · Sondertilgung ${e0(fs.sweep)} % des Überschusses`:''}`],
-     ...(F.taxOn?[['Ertragsteuern',`gesamt ${e0(F.taxSum)} EUR · ${[...new Set(F.rows.slice(1).map(r=>NF1.format(r.taxRate)+' %'))].join(' / ')} (${F.rows[1].taxTxt})`]]:[]),['Kredit getilgt',F.paidOff?`${F.cal0+F.paidOff}`:`Restschuld nach ${F.H} Jahren ${e0(F.rows[F.H].bal)} €`]];
+     ...F.subRes.map(x=>['Förderung: '+x.name,`Nennwert ${x.nominal==null?'-':e0(x.nominal)+' EUR'} · tatsächlicher Vorteil ${e0(x.value)} EUR · ${x.note}`]),...(F.noSub?[['Ohne Förderungen',`Eigenkapital zurück ${F.noSub.payback==null?'-':NF1.format(F.noSub.payback)+' J.'} · Verzinsung ${F.noSub.irr==null?'-':pc(F.noSub.irr)} · Deckung min. ${F.noSub.minD==null?'-':NF2.format(F.noSub.minD)+'x'}`]]:[]),...(F.taxOn?[['Ertragsteuern',`gesamt ${e0(F.taxSum)} EUR · ${[...new Set(F.rows.slice(1).map(r=>NF1.format(r.taxRate)+' %'))].join(' / ')} (${F.rows[1].taxTxt})`]]:[]),['Kredit getilgt',F.paidOff?`${F.cal0+F.paidOff}`:`Restschuld nach ${F.H} Jahren ${e0(F.rows[F.H].bal)} €`]];
    doc.autoTable({startY:38,margin:{left:M,right:M},tableWidth:TW,theme:'plain',styles:{...baseStyles,halign:'left',fontSize:7.2},
      body:left.map(([a,b])=>[pdfTxt(a),pdfTxt(b)]),columnStyles:{0:{cellWidth:60,fontStyle:'bold'}}});
    const own=F.own, reno=F.reno;
@@ -2036,7 +2162,7 @@ async function makePdf(){
     doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
     doc.text(pdfTxt('mamu hospitality · Schönbrunner Straße 179 | AT - 1120 Vienna'),M,204);doc.text(`Seite ${i} / ${n}`,W-M,204,{align:'right'})}
   const blob=doc.output('blob');
-  await saveFile(`${fileBase()}_USALI_${S.scen||'Base'}_${R.cal}.pdf`,blob,'application/pdf');
+  await saveFile(pdfName(),blob,'application/pdf',handle);
 }
 
 /* ================= Start ================= */
@@ -2048,7 +2174,7 @@ function loadExcelJS(){
   return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
     s.onload=()=>res(window.ExcelJS);s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)});
 }
-async function makeXlsx(withF){
+async function makeXlsx(withF,handle){
   let EX;try{EX=await loadExcelJS()}catch(e){toast('Excel-Bibliothek nicht geladen. Bitte Internetverbindung prüfen.');return}
   if(!EX){toast('Excel-Bibliothek nicht verfügbar.');return}
   toast('Excel wird erstellt …');
@@ -2250,9 +2376,12 @@ async function makeXlsx(withF){
      if(F.taxOn){set(tc,null,r.afa);set(tc+1,null,r.taxRate,'0.0');set(tc+2,null,r.tax)}
      styleRow(row,'row',hdr.length)});
    wsF.columns=[{width:30},{width:16},{width:16},{width:14},{width:12},{width:12},{width:13},{width:11},{width:18},{width:18},{width:14},{width:14}];
+   if(F.subRes.length){let rr=21+F.rows.length;headRow(wsF,rr++,['Förderung','Nennwert','Tatsächlicher Vorteil','Hinweis']);
+     F.subRes.forEach(x=>{const row=wsF.getRow(rr++);[x.name,x.nominal==null?'':x.nominal,x.value,x.note].forEach((v,i)=>{row.getCell(i+1).value=v;if(i===1||i===2)row.getCell(i+1).numFmt=NUM});styleRow(row,'row',4)});
+     const row=wsF.getRow(rr++);row.getCell(1).value='Summe tatsächlicher Vorteil';row.getCell(3).value=sum(F.subRes.map(x=>x.value));row.getCell(3).numFmt=NUM;styleRow(row,'tot',4)}
    const nr=wsF.getRow(19+F.rows.length);nr.getCell(1).value='Zinsen und Tilgung aus dem Kreditplan des Tools. '+(F.taxOn?'Ertragsteuern auf den Mehrgewinn (Mehrertrag − Zinsen − Abschreibung) mit Verlustvortrag, Satz je Land und Jahr laut Tool.':'Ohne Ertragsteuern.')+' Ohne Verkaufs- oder Restwert. Jahre nach dem 10. Betriebsjahr mit Umsatzindex fortgeschrieben.';styleRow(nr,'info',1);
   }
   const buf=await wb.xlsx.writeBuffer();
-  await saveFile(`${fileBase()}_PL_${scen}_${withF?'Formeln':'Werte'}.xlsx`,new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await saveFile(xlsxName(withF),new Blob([buf],{type:XLSX_MIME}),XLSX_MIME,handle);
 }
 </script></body></html>
