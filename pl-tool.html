@@ -894,7 +894,7 @@ function vatBox(){
     ${P.rooms!=null&&iss.some(x=>['rooms','food','bev'].includes(x.k))?'<button class="btn" type="button" data-act="vatPreset" style="padding:4px 10px">Vorgabe übernehmen</button>':''}
     <button class="btn primary" type="button" data-act="vatOk" style="padding:4px 10px">Sätze geprüft – bestätigen</button></div>`;
 }
-const STEPS=[['projekt','Projekt & Kalender'],['zimmer','Zimmer & Belegung'],['preise','Preise & Rooms-Kosten'],['fnb','F&B Outlets'],['mice','MICE & Bankett'],['spa','Spa & Wellness'],['ood','Weitere Abteilungen'],['personal','Personal'],['undist','Betriebskosten & Fees'],['nonop','Pacht & Non-Operating'],['projektion','Projektion & Hochlauf']];
+const STEPS=[['projekt','Projekt & Kalender'],['zimmer','Zimmer, Preise & Belegung'],['fnb','F&B Outlets'],['mice','MICE & Bankett'],['spa','Spa & Wellness'],['ood','Weitere Abteilungen'],['personal','Personal'],['undist','Betriebskosten & Fees'],['nonop','Pacht & Non-Operating'],['projektion','Projektion & Hochlauf']];
 const SEASOPT=[['L','Nebensaison'],['M','Zwischensaison'],['H','Hauptsaison']];
 const R_=()=>stab();
 
@@ -917,25 +917,23 @@ projekt:()=>({t:'Projekt & Kalender',lead:'Grunddaten, Zeitachse und Betriebskal
      ${c.open?`<small class="muted">Öffnungstage</small><div class="calday">${cN(`cal.${i}.days`,{al:MONTHS[i]+' Öffnungstage'})}<span>/ ${MDAYS[i]}</span></div>${calc('calOver',i)}`:'<span class="muted">geschlossen</span>'}</div>`).join('')}</div></div>
    <p class="hint" style="margin-top:12px">Öffnungstage p.a.: <b>${calc('openDays')}</b> · Betriebsmonate: <b>${calc('openMonths')}</b></p>`)}),
 
-zimmer:()=>({t:'Zimmer & Belegung',lead:'Zimmerkategorien mit Aufpreis gegenüber der Basiskategorie und die Belegung je Monat im stabilisierten Jahr.',
+zimmer:()=>({t:'Zimmer, Preise & Belegung',lead:'Zimmerkategorien, Rack Rates mit Verpflegungspauschale, Gäste, Belegung je Monat im stabilisierten Jahr, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
  html:block('sec-types','Zimmerkategorien','Der Aufpreis (netto) wird mit der Keys-Verteilung gewichtet und auf die Rack Rate der Basiskategorie aufgeschlagen.',
    `<div class="tw"><table class="t"><thead><tr><th>Kategorie</th><th>Keys</th><th>Anteil</th><th>Größe m²</th><th>Aufpreis € netto</th><th></th></tr></thead><tbody>
    ${S.r.types.map((t,i)=>`<tr><td>${cT(`r.types.${i}.name`)}</td><td>${cN(`r.types.${i}.keys`,{al:'Keys'})}</td><td>${calc('typeShare',i)}</td><td>${cN(`r.types.${i}.size`,{al:'Größe'})}</td><td>${cN(`r.types.${i}.prem`,{al:'Aufpreis'})}</td><td>${del('r.types',i)}</td></tr>`).join('')}
    </tbody><tfoot><tr><td>Total</td><td>${calc('keys')}</td><td>100 %</td><td>${calc('avgSize')}</td><td>Ø ${calc('avgPrem')}</td><td></td></tr></tfoot></table></div>${add('r.types','Kategorie')}`)
- +block('sec-occ','Belegung je Monat','Zimmerbelegung im stabilisierten Jahr. Punkte in der Grafik nach oben oder unten ziehen (oder anklicken und Pfeiltasten nutzen) – oder die Werte in der Tabelle eingeben. Hochlauf-Abschläge definieren Sie im Schritt „Projektion“.',
-   `<div class="occwrap"><svg id="occSvg" class="occsvg" viewBox="0 0 860 235" role="group" aria-label="Belegung je Monat, Punkte verschiebbar">${occInner()}</svg></div><div class="tw"><table class="t"><thead><tr><th>Monat</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th></tr></thead><tbody>
-   <tr><td>Saison</td>${S.cal.map(c=>`<td class="muted">${c.season}</td>`).join('')}<td></td></tr>
-   <tr><td>Belegung %</td>${S.cal.map((c,i)=>`<td>${c.open?cN(`r.occ.${i}`,{al:MONTHS[i]+' Belegung'}):'<span class="muted">zu</span>'}</td>`).join('')}<td>${calc('occAvg')}</td></tr></tbody></table></div>`)
- +block('sec-guests','Gäste','Die Gästezahl steuert F&B- und Spa-Nachfrage. Kinder konsumieren mit reduziertem Ø-Bon.',
-   `<div class="grid">${NUM('r.dof','Double Occupancy Factor','Gäste/Zi.',{tip:'Durchschnittliche Personen je belegtem Zimmer'})}${NUM('r.kids','Anteil Kinder','%')}${NUM('r.kidSpend','Konsum Kinder','% v. Erw.')}</div>`)}),
-
-preise:()=>({t:'Preise & Rooms-Kosten',lead:'Rack Rates der Basiskategorie (netto, je Zimmer) je Saison, Verpflegungspauschale, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
- html:block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
+ +block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
    `<div class="grid row" style="--n:6">${NUM('r.rate.L','Rack Rate Nebensaison','€ netto')}${NUM('r.rate.M','Rack Rate Zwischensaison','€ netto')}${NUM('r.rate.H','Rack Rate Hauptsaison','€ netto')}
     ${SEL('r.pkg','Verpflegung im Zimmerpreis',[['RO','Nur Logis'],['BB','inkl. Frühstück'],['HB','inkl. Halbpension']],{rr:1})}
     ${S.r.pkg!=='RO'?NUM('r.bfSplit','Split Frühstück netto','€ / Pers.',{tip:'Netto-Wert des Frühstücks je Person, der im Zimmerpreis enthalten ist'}):''}
     ${S.r.pkg==='HB'?NUM('r.hbSplit','Split Abendessen netto','€ / Pers.'):''}</div>
     <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) <br>Ø über alle Zimmerkategorien (inkl. Ø Aufpreis ${calc('avgPrem')}): Logis netto NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto inkl. Verpflegung NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}. Die Preise der günstigsten Kategorie stehen im Modul-Ergebnis.</p>`)
+ +block('sec-guests','Gäste','Die Gästezahl steuert F&B- und Spa-Nachfrage. Kinder konsumieren mit reduziertem Ø-Bon.',
+   `<div class="grid">${NUM('r.dof','Double Occupancy Factor','Gäste/Zi.',{tip:'Durchschnittliche Personen je belegtem Zimmer'})}${NUM('r.kids','Anteil Kinder','%')}${NUM('r.kidSpend','Konsum Kinder','% v. Erw.')}</div>`)
+ +block('sec-occ','Belegung je Monat','Zimmerbelegung im stabilisierten Jahr. Punkte in der Grafik nach oben oder unten ziehen (oder anklicken und Pfeiltasten nutzen) – oder die Werte in der Tabelle eingeben. Hochlauf-Abschläge definieren Sie im Schritt „Projektion“.',
+   `<div class="occwrap"><svg id="occSvg" class="occsvg" viewBox="0 0 860 235" role="group" aria-label="Belegung je Monat, Punkte verschiebbar">${occInner()}</svg></div><div class="tw"><table class="t"><thead><tr><th>Monat</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th></tr></thead><tbody>
+   <tr><td>Saison</td>${S.cal.map(c=>`<td class="muted">${c.season}</td>`).join('')}<td></td></tr>
+   <tr><td>Belegung %</td>${S.cal.map((c,i)=>`<td>${c.open?cN(`r.occ.${i}`,{al:MONTHS[i]+' Belegung'}):'<span class="muted">zu</span>'}</td>`).join('')}<td>${calc('occAvg')}</td></tr></tbody></table></div>`)
  +block('sec-segs','Segmentierung & Rabatte','Anteil der Room Nights je Segment und Saison. Der Rest ist Retail / Direkt zum vollen Preis.',
    `<div class="tw"><table class="t"><thead><tr><th>Segment</th><th>NS %</th><th>ZS %</th><th>HS %</th><th>Rabatt %</th><th></th></tr></thead><tbody>
    <tr><td class="muted">Retail / Direkt</td><td>${calc('retail','L')}</td><td>${calc('retail','M')}</td><td>${calc('retail','H')}</td><td class="muted">0</td><td></td></tr>
@@ -1055,13 +1053,12 @@ projektion:()=>({t:'Projektion & Hochlauf',lead:'Abweichungen je Betriebsjahr vo
 /* ---------- Modul-Ergebnisse ---------- */
 const MODRES={
  projekt:()=>{const R=R_();return kv([['Keys',e0(R.keys)],['Öffnungstage',e0(R.days)],['Verfügbare Zimmer',e0(R.avail)],['Stabilisiert',`${yLabel(S.p.stab)} · ${R.cal}`]])},
- zimmer:()=>{const R=R_();return kv([['Belegung',pc(R.occ)],['Zimmer verkauft',e0(R.sold)],['Gästenächte',e0(R.guests)],['Ø Gäste / Tag',e0(R.days?R.guests/R.days:0)]])},
- preise:()=>{const R=R_();
+ zimmer:()=>{const R=R_();
    const T=S.r.types.length?S.r.types.reduce((m,t)=>(+t.prem<+m.prem?t:m)):{name:'–',prem:0}, pk=pkgNet(S)*S.r.dof*kidMult(S);
    const gr=x=>(+S.r.rate[x]+(+T.prem||0)-pk)*(1+S.vat.rooms/100)+pk*(1+S.vat.food/100);
    const w={L:0,M:0,H:0};S.cal.forEach((c,m)=>{if(c.open)w[c.season]+=clamp(+c.days,0,MDAYS[m])*(+S.r.occ[m]||0)});const ws=w.L+w.M+w.H;
    const avg=ws?(gr('L')*w.L+gr('M')*w.M+gr('H')*w.H)/ws:0;
-   return kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])
+   return kv([['Belegung',pc(R.occ)],['Zimmer verkauft',e0(R.sold)],['Gästenächte',e0(R.guests)],['Ø Gäste / Tag',e0(R.days?R.guests/R.days:0)]])+'<div style="margin-top:14px">'+kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])+'</div>'
    +`<h4 class="mrsub">Brutto-Verkaufspreis ${esc(T.name)} (günstigste Kategorie) je Zimmer und Nacht</h4>`
    +kv([['Nebensaison',e0(gr('L'))+' €'],['Zwischensaison',e0(gr('M'))+' €'],['Hauptsaison',e0(gr('H'))+' €'],['Durchschnitt',e0(avg)+' €']])
    +`<p class="hint" style="margin:8px 0 0">Inkl. MwSt. (Logis ${NF1.format(S.vat.rooms)} %${S.r.pkg!=='RO'?`, Verpflegung ${NF1.format(S.vat.food)} %`:''})${S.r.pkg!=='RO'?' und '+({BB:'Frühstück',HB:'Halbpension'})[S.r.pkg]+' für '+NF1.format(S.r.dof)+' Personen':''}, Preisbasis ${S.p.baseYear}. Durchschnitt gewichtet nach belegten Zimmernächten je Saison.</p>`},
@@ -1130,14 +1127,14 @@ function summaryRows(){
   const G=(s,a)=>s+'|'+a;
   return [
    ['hd','Operating Revenue'],
-   ['row','Rooms',R=>R.roomsRev,G('preise','sec-rates'),'tr'],
+   ['row','Rooms',R=>R.roomsRev,G('zimmer','sec-rates'),'tr'],
    ['row','Food & Beverage',R=>R.fb.rev,G('fnb','sec-outlet-0'),'tr'],
    ['row','Spa',R=>R.spa.rev,G('spa','sec-sdem'),'tr'],
    ['row','Other Operated Departments',R=>R.oodRev,G('ood','sec-ood'),'tr'],
    ['row','Miscellaneous Income',R=>R.misc,G('ood','sec-misc'),'tr'],
    ['tot','Total Operating Revenue',R=>R.tr,null,'tr'],
    ['hd','Departmental Expenses'],
-   ['row','Rooms',R=>R.dRooms.exp,G('preise','sec-rexp'),'rooms'],
+   ['row','Rooms',R=>R.dRooms.exp,G('zimmer','sec-rexp'),'rooms'],
    ['row','Food & Beverage',R=>R.dFb.exp,G('fnb','sec-fexp'),'fb'],
    ['row','Spa',R=>R.dSpa.exp,G('spa','sec-sexp'),'spa'],
    ['row','Other Operated Departments',R=>R.dOod.exp,G('ood','sec-ood'),'ood'],
@@ -1168,8 +1165,8 @@ function summaryRows(){
    ['stat','Available Rooms',R=>e0(R.avail),G('projekt','sec-cal')],
    ['stat','Rooms Sold',R=>e0(R.sold),G('zimmer','sec-occ')],
    ['stat','Occupancy',R=>pc(R.occ),G('zimmer','sec-occ')],
-   ['stat','ADR (€)',R=>e0(R.adr),G('preise','sec-rates')],
-   ['stat','RevPAR (€)',R=>e0(R.revpar),G('preise','sec-rates')],
+   ['stat','ADR (€)',R=>e0(R.adr),G('zimmer','sec-rates')],
+   ['stat','RevPAR (€)',R=>e0(R.revpar),G('zimmer','sec-rates')],
    ['stat','TRevPAR (€)',R=>e0(R.trevpar),null],
    ['stat','GOPPAR (€)',R=>e0(R.goppar),null],
    ['stat','FTE (Ø Saison)',R=>e1(R.fte),G('personal','sec-pos')],
@@ -1188,9 +1185,9 @@ function schedule(title,revLabel,rev,rows,R){
 }
 function scheduleData(R){
   const P=R.pay, lab2=(P)=>[['sub','Salaries & Wages',P.wages],['sub','Payroll-Related (inkl. Personalessen)',P.rel]];
-  const rooms=[['hd','Revenue'],...R.seg.map(s=>['sub',`${s.name} · ${e0(s.rn)} RN · ADR ${e0(s.rn?s.rev/s.rn:0)} €`,s.rev,'preise|sec-segs']),['tot','Rooms Revenue',R.roomsRev],
-    ['hd','Expenses'],['row','Labor Costs',R.dRooms.labor,'personal|sec-pos'],...lab2(P.Rooms),['sub','Contract Labor (Fremdreinigung)',P.Rooms.contract,'preise|sec-rexp'],...paySubs(S,R,'Rooms').map(d=>['sub2','davon '+d.label,d.P.total,'personal|sec-pos']),
-    ['row','Commissions',R.dRooms.comm,'preise|sec-rexp'],['row','Reservations',R.dRooms.resv,'preise|sec-rexp'],['row','Guest Supplies',R.dRooms.supplies,'preise|sec-rexp'],['row','Laundry & Linen',R.dRooms.laundry,'preise|sec-rexp'],['row','Other Expenses',R.dRooms.other,'preise|sec-rexp'],
+  const rooms=[['hd','Revenue'],...R.seg.map(s=>['sub',`${s.name} · ${e0(s.rn)} RN · ADR ${e0(s.rn?s.rev/s.rn:0)} €`,s.rev,'zimmer|sec-segs']),['tot','Rooms Revenue',R.roomsRev],
+    ['hd','Expenses'],['row','Labor Costs',R.dRooms.labor,'personal|sec-pos'],...lab2(P.Rooms),['sub','Contract Labor (Fremdreinigung)',P.Rooms.contract,'zimmer|sec-rexp'],...paySubs(S,R,'Rooms').map(d=>['sub2','davon '+d.label,d.P.total,'personal|sec-pos']),
+    ['row','Commissions',R.dRooms.comm,'zimmer|sec-rexp'],['row','Reservations',R.dRooms.resv,'zimmer|sec-rexp'],['row','Guest Supplies',R.dRooms.supplies,'zimmer|sec-rexp'],['row','Laundry & Linen',R.dRooms.laundry,'zimmer|sec-rexp'],['row','Other Expenses',R.dRooms.other,'zimmer|sec-rexp'],
     ['tot','Total Expenses',R.dRooms.exp],['key','Rooms Departmental Profit',R.dRooms.profit]];
   const fb=[['hd','Revenue'],...R.outl.map((o,i)=>['sub',`${o.name} · ${e0(o.covers)} Covers`,o.food+o.bev,`fnb|sec-outlet-${i}`]),
     ['sub',`MICE-Pauschalen · ${e0(R.mice.full)} GT / ${e0(R.mice.half)} HT`,R.mice.rev,'mice|sec-mpk'],['sub','Bankette & Hochzeiten',R.mice.bq,'mice|sec-banq'],
