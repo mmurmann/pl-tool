@@ -929,13 +929,13 @@ zimmer:()=>({t:'Zimmer & Belegung',lead:'Zimmerkategorien mit Aufpreis gegenübe
  +block('sec-guests','Gäste','Die Gästezahl steuert F&B- und Spa-Nachfrage. Kinder konsumieren mit reduziertem Ø-Bon.',
    `<div class="grid">${NUM('r.dof','Double Occupancy Factor','Gäste/Zi.',{tip:'Durchschnittliche Personen je belegtem Zimmer'})}${NUM('r.kids','Anteil Kinder','%')}${NUM('r.kidSpend','Konsum Kinder','% v. Erw.')}</div>`)}),
 
-preise:()=>({t:'Preise & Rooms-Kosten',lead:'Rack Rates der Basiskategorie (brutto) je Saison, Verpflegungspauschale, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
+preise:()=>({t:'Preise & Rooms-Kosten',lead:'Rack Rates der Basiskategorie (netto, je Zimmer) je Saison, Verpflegungspauschale, Segmentierung mit Rabatten und die direkten Rooms-Kosten.',
  html:block('sec-rates','Rack Rates & Pauschale','Rack Rate netto je Zimmer für die Basiskategorie, bei Pauschale inklusive Verpflegung. Der Verpflegungs-Split (netto je Person) wird aus dem Zimmerpreis herausgerechnet und als F&B-Umsatz erfasst (USALI Package Allocation).',
    `<div class="grid row" style="--n:6">${NUM('r.rate.L','Rack Rate Nebensaison','€ netto')}${NUM('r.rate.M','Rack Rate Zwischensaison','€ netto')}${NUM('r.rate.H','Rack Rate Hauptsaison','€ netto')}
     ${SEL('r.pkg','Verpflegung im Zimmerpreis',[['RO','Nur Logis'],['BB','inkl. Frühstück'],['HB','inkl. Halbpension']],{rr:1})}
     ${S.r.pkg!=='RO'?NUM('r.bfSplit','Split Frühstück netto','€ / Pers.',{tip:'Netto-Wert des Frühstücks je Person, der im Zimmerpreis enthalten ist'}):''}
     ${S.r.pkg==='HB'?NUM('r.hbSplit','Split Abendessen netto','€ / Pers.'):''}</div>
-    <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) · Logis netto: NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto-Gegenwert: NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}</p>`)
+    <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) <br>Ø über alle Zimmerkategorien (inkl. Ø Aufpreis ${calc('avgPrem')}): Logis netto NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto inkl. Verpflegung NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}. Die Preise der günstigsten Kategorie stehen im Modul-Ergebnis.</p>`)
  +block('sec-segs','Segmentierung & Rabatte','Anteil der Room Nights je Segment und Saison. Der Rest ist Retail / Direkt zum vollen Preis.',
    `<div class="tw"><table class="t"><thead><tr><th>Segment</th><th>NS %</th><th>ZS %</th><th>HS %</th><th>Rabatt %</th><th></th></tr></thead><tbody>
    <tr><td class="muted">Retail / Direkt</td><td>${calc('retail','L')}</td><td>${calc('retail','M')}</td><td>${calc('retail','H')}</td><td class="muted">0</td><td></td></tr>
