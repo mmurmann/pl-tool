@@ -434,6 +434,7 @@ function defaults(){
               {name:'Junior Suite',keys:8,size:45,prem:80},{name:'Familiensuite',keys:4,size:58,prem:120}],
        occ:[78,85,72,45,48,66,82,88,72,52,0,70],dof:1.9,kids:15,kidSpend:50,
        rate:{L:185,M:220,H:275},pkg:'BB',bfSplit:24,hbSplit:38,
+       otax:{mode:'pp',amt:null,base:'net',kidsEx:true,incl:false,manual:false,for:null,kids:0},
        segs:[{name:'Corporate',L:8,M:5,H:2,disc:-10},{name:'Packages / Promotion',L:20,M:15,H:10,disc:-15},
              {name:'Reiseveranstalter / Wholesale',L:5,M:5,H:3,disc:-20},{name:'MICE (Seminargäste)',L:10,M:8,H:2,disc:-8},
              {name:'Gruppen (Leisure)',L:8,M:5,H:3,disc:-20}],
@@ -531,7 +532,7 @@ function computeYear(S,y,scen){
   const keys=keysOf(S), km=kidMult(S), extR=1+ramp.ext/100;
   const bfI=bfOutlet(S), diI=diOutlet(S);
   // Akkumulatoren
-  let days=0,avail=0,sold=0,guests=0;
+  let days=0,avail=0,sold=0,guests=0,otax=0;
   const seg=S.r.segs.map(g=>({name:g.name,rn:0,rev:0})); const segRet={name:'Retail / Direkt',rn:0,rev:0};
   const outl=S.f.outlets.map(o=>({name:o.name,food:0,bev:0,covers:0,util:0,meals:{}}));
   const miceRoom=S.m.rooms.map(r=>({name:r.name,days:0,rev:0})); let miceAvail=0, spaRetail=0;
@@ -551,6 +552,7 @@ function computeYear(S,y,scen){
     segRet.rn+=sd*rs; segRet.rev+=sd*rs*ret;
     let mrev=sd*rs*ret;
     S.r.segs.forEach((gg,i)=>{const sh=gg[s]/100;seg[i].rn+=sd*sh;const v=sd*sh*ret*(1+gg.disc/100);seg[i].rev+=v;mrev+=v});
+    otax+=otaxMonth(S,g,mrev,pi);
     monthly.push({occ:oc,rev:mrev,sold:sd});
     // F&B Outlets
     const exF=S.f.ext[s]/100*extR;
@@ -599,6 +601,8 @@ function computeYear(S,y,scen){
   R.keys=keys;R.days=days;R.avail=avail;R.sold=sold;R.guests=guests;R.monthly=monthly;
   R.occ=avail?sold/avail:0;
   R.seg=[segRet].concat(seg);
+  R.otax=otax; R.otaxIncl=!!(S.r.otax&&S.r.otax.incl);
+  if(R.otaxIncl&&otax>0){const g0=sum(R.seg.map(x=>x.rev)),f=g0>0?Math.max(0,g0-otax)/g0:1;R.seg.forEach(x=>x.rev*=f)}
   R.roomsRev=sum(R.seg.map(x=>x.rev)); R.adr=sold?R.roomsRev/sold:0; R.revpar=avail?R.roomsRev/avail:0;
   // F&B
   const bq=S.m.banq, bqRev=bq.events*bq.pax*bq.spend*pi*extR;
@@ -925,7 +929,7 @@ zimmer:()=>({t:'Zimmer, Preise & Belegung',lead:'Zimmerkategorien, Rack Rates mi
     ${SEL('r.pkg','Verpflegung im Zimmerpreis',[['RO','Nur Logis'],['BB','inkl. Frühstück'],['HB','inkl. Halbpension']],{rr:1})}
     ${S.r.pkg!=='RO'?NUM('r.bfSplit','Split Frühstück netto','€ / Pers.',{tip:'Netto-Wert des Frühstücks je Person, der im Zimmerpreis enthalten ist'}):''}
     ${S.r.pkg==='HB'?NUM('r.hbSplit','Split Abendessen netto','€ / Pers.'):''}</div>
-    <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) <br>Ø über alle Zimmerkategorien (inkl. Ø Aufpreis ${calc('avgPrem')}): Logis netto NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto inkl. Verpflegung NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}. Die Preise der günstigsten Kategorie stehen im Modul-Ergebnis.</p>`)
+    <p class="hint" style="margin-top:12px">Verpflegungsanteil: <b>${calc('pkg')}</b> (Split × ${e1(S.r.dof)} Gäste, Kinder anteilig) <br>Ø über alle Zimmerkategorien (inkl. Ø Aufpreis ${calc('avgPrem')}): Logis netto NS ${calc('logis','L')} · ZS ${calc('logis','M')} · HS ${calc('logis','H')} · Brutto inkl. Verpflegung NS ${calc('gross','L')} · ZS ${calc('gross','M')} · HS ${calc('gross','H')}. Die Preise der günstigsten Kategorie stehen im Modul-Ergebnis.</p>${otaxBlock()}`)
  +block('sec-types','Zimmerkategorien','Der Aufpreis (netto) wird mit der Keys-Verteilung gewichtet und auf die Rack Rate der Basiskategorie aufgeschlagen.',
    `<div class="tw"><table class="t"><thead><tr><th>Kategorie</th><th>Keys</th><th>Anteil</th><th>Größe m²</th><th>Aufpreis € netto</th><th title="Rack Rate der Basiskategorie + Aufpreis, netto je Zimmer und Nacht">Rack Rate NS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th>Rack Rate ZS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th>Rack Rate HS<br><span style="font-weight:500;text-transform:none;letter-spacing:0">€ netto</span></th><th></th></tr></thead><tbody>
    ${S.r.types.map((t,i)=>`<tr><td>${cT(`r.types.${i}.name`)}</td><td>${cN(`r.types.${i}.keys`,{al:'Keys'})}</td><td>${calc('typeShare',i)}</td><td>${cN(`r.types.${i}.size`,{al:'Größe'})}</td><td>${cN(`r.types.${i}.prem`,{al:'Aufpreis'})}</td><td>${calc('typeRate',i+':L')}</td><td>${calc('typeRate',i+':M')}</td><td>${calc('typeRate',i+':H')}</td><td>${del('r.types',i)}</td></tr>`).join('')}
@@ -1063,6 +1067,12 @@ const MODRES={
    return kv([['Belegung',pc(R.occ)],['Zimmer verkauft',e0(R.sold)],['Gästenächte',e0(R.guests)],['Ø Gäste / Tag',e0(R.days?R.guests/R.days:0)]])+'<div style="margin-top:14px">'+kv([['ADR netto',e0(R.adr)+' €'],['RevPAR',e0(R.revpar)+' €'],['Rooms Revenue',e0(R.roomsRev)+' €'],['Rooms Dept. Profit',pc(R.roomsRev?R.dRooms.profit/R.roomsRev:0)]])+'</div>'
    +`<h4 class="mrsub">Brutto-Verkaufspreis ${esc(T.name)} (günstigste Kategorie) je Zimmer und Nacht</h4>`
    +kv([['Nebensaison',e0(gr('L'))+' €'],['Zwischensaison',e0(gr('M'))+' €'],['Hauptsaison',e0(gr('H'))+' €'],['Durchschnitt',e0(avg)+' €']])
+   +(()=>{const O=S.r.otax||{};if(!(+O.amt>0))return '';
+     const ot=x=>O.mode==='pct'?((+S.r.rate[x]+(+T.prem||0)-pk)*(O.base==='gross'?1+S.vat.rooms/100:1))*(+O.amt)/100:(+O.amt)*S.r.dof*(O.kidsEx===false?1:1-(+S.r.kids||0)/100);
+     const oavg=ws?(ot('L')*w.L+ot('M')*w.M+ot('H')*w.H)/ws:0;
+     return `<h4 class="mrsub">${O.incl?'Davon Ortstaxe (im Preis enthalten)':'Endpreis für den Gast inkl. Ortstaxe'} · Ortstaxe gesamt ${e0(R.otax)} € p.a.${O.incl?' (vom Umsatz abgezogen)':' (durchlaufend)'}</h4>`
+       +kv(O.incl?[['Nebensaison',e1(ot('L'))+' €'],['Zwischensaison',e1(ot('M'))+' €'],['Hauptsaison',e1(ot('H'))+' €'],['Durchschnitt',e1(oavg)+' €']]
+                 :[['Nebensaison',e0(gr('L')+ot('L'))+' €'],['Zwischensaison',e0(gr('M')+ot('M'))+' €'],['Hauptsaison',e0(gr('H')+ot('H'))+' €'],['Durchschnitt',e0(avg+oavg)+' €']])})()
    +`<p class="hint" style="margin:8px 0 0">Inkl. MwSt. (Logis ${NF1.format(S.vat.rooms)} %${S.r.pkg!=='RO'?`, Verpflegung ${NF1.format(S.vat.food)} %`:''})${S.r.pkg!=='RO'?' und '+({BB:'Frühstück',HB:'Halbpension'})[S.r.pkg]+' für '+NF1.format(S.r.dof)+' Personen':''}, Preisbasis ${S.p.baseYear}. Durchschnitt gewichtet nach belegten Zimmernächten je Saison.</p>`},
  fnb:()=>{const R=R_();const w=[];R.outl.forEach(o=>Object.entries(o.meals).forEach(([k,m])=>{if(m.util>1)w.push(`${o.name} – ${MEALS.find(x=>x[0]===k)[1]}: ${NF0.format(m.util*100)} %`)}));
    return kv([['F&B Revenue',e0(R.fb.rev)+' €'],['Food / Beverage',`${pc(R.fb.rev?R.fb.food/R.fb.rev:0)} / ${pc(R.fb.rev?R.fb.bev/R.fb.rev:0)}`],['Covers Outlets',e0(R.fb.covers)],['F&B je Gästenacht',e1(R.guests?R.fb.rev/R.guests:0)+' €'],['Wareneinsatz',pc(R.fb.rev?R.dFb.cos/R.fb.rev:0)],['F&B Dept. Profit',pc(R.fb.rev?R.dFb.profit/R.fb.rev:0)]])
@@ -1187,7 +1197,7 @@ function schedule(title,revLabel,rev,rows,R){
 }
 function scheduleData(R){
   const P=R.pay, lab2=(P)=>[['sub','Salaries & Wages',P.wages],['sub','Payroll-Related (inkl. Personalessen)',P.rel]];
-  const rooms=[['hd','Revenue'],...R.seg.map(s=>['sub',`${s.name} · ${e0(s.rn)} RN · ADR ${e0(s.rn?s.rev/s.rn:0)} €`,s.rev,'zimmer|sec-segs']),['tot','Rooms Revenue',R.roomsRev],
+  const rooms=[['hd','Revenue'],...R.seg.map(s=>['sub',`${s.name} · ${e0(s.rn)} RN · ADR ${e0(s.rn?s.rev/s.rn:0)} €`,s.rev,'zimmer|sec-segs']),['tot','Rooms Revenue',R.roomsRev],...(R.otax>0.5?[['sub',R.otaxIncl?'Info: Ortstaxe im Zimmerpreis, bereits abgezogen':'Info: Ortstaxe eingehoben (durchlaufend, kein Umsatz)',R.otax,'zimmer|sec-rates']]:[]),
     ['hd','Expenses'],['row','Labor Costs',R.dRooms.labor,'personal|sec-pos'],...lab2(P.Rooms),['sub','Contract Labor (Fremdreinigung)',P.Rooms.contract,'zimmer|sec-rexp'],...paySubs(S,R,'Rooms').map(d=>['sub2','davon '+d.label,d.P.total,'personal|sec-pos']),
     ['row','Commissions',R.dRooms.comm,'zimmer|sec-rexp'],['row','Reservations',R.dRooms.resv,'zimmer|sec-rexp'],['row','Guest Supplies',R.dRooms.supplies,'zimmer|sec-rexp'],['row','Laundry & Linen',R.dRooms.laundry,'zimmer|sec-rexp'],['row','Other Expenses',R.dRooms.other,'zimmer|sec-rexp'],
     ['tot','Total Expenses',R.dRooms.exp],['key','Rooms Departmental Profit',R.dRooms.profit]];
@@ -1321,6 +1331,7 @@ function recalc(){
   RES=computeAll(S); saveLS(); ui.finC=null;
   refreshCalc(); renderLive();
   const fo=$('#finOut'); if(fo) fo.innerHTML=finOutHtml();
+  const oi=$('#otaxInfo'); if(oi) oi.innerHTML=otaxInfo();
   if($('#seasBox')&&document.activeElement&&document.activeElement.id==='f-p-location')seasRefresh();
   const m=$('#modres'); if(m&&MODRES[step]) m.innerHTML=MODRES[step]();
   const vb=$('#vatBox'); if(vb) vb.innerHTML=vatBox();
@@ -1337,6 +1348,8 @@ function applyInput(el,isChange){
   if(p==='p.country'){const vp=VATP[v];if(vp&&vp.rooms!=null){S.vat.rooms=vp.rooms;S.vat.food=vp.food;S.vat.bev=vp.bev}if(vp&&vp.vac!=null){S.st.vac=vp.vac;S.st.hol=vp.hol}if(vp&&vp.cit!=null&&S.fin)S.fin.tax.rate=vp.cit;S.vat.checked=false;if(isChange)toast('MwSt. für '+(vp?vp.n:v)+' vorbelegt – bitte prüfen und bestätigen')}
   if(/^vat\.(rooms|food|bev)$/.test(p)){S.vat.checked=false}
   if(p==='p.stab'){ui.dy=null}
+  if(p==='p.location'||p==='p.country'||p==='p.cls')otaxApply(false);
+  if(p==='r.otax.amt'||p==='r.otax.mode'||p==='r.otax.base')S.r.otax.manual=true;
   recalc();
   if(el.dataset.rr&&isChange)renderStep(true);
 }
@@ -2004,6 +2017,122 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-seas
   RES=computeAll(S);saveLS();renderStep(true)});
 document.addEventListener('change',e=>{if(e.target.id==='f-p-location')seasLookup()});
 
+/* ================= Ortstaxe ================= */
+/* Recherchierte Werte, Stand Oktober 2026. pp = € pro Person und Nacht, pct = % vom Logispreis (base net/gross).
+   stars: Beträge nach Sternen (Schlüssel 5,4,3,0 = übrige). kids: befreit bis einschließlich Alter. */
+const OTAX_STAND='10/2026';
+const OTAX_SRC={tirol:'Land Tirol, Abgabenhöhe aller Tourismusverbände 2026',ooe:'Salzkammergut Tourismus, Anpassung Ortstaxen 2026',bgld:'Forvis Mazars, Ortstaxe 2026 (Landtagsbeschluss)',ktn:'Tourismusreform Kärnten (Gesetzwerdung vorbehalten)',wien:'ORF Wien 2026, Wiener Tourismusförderungsgesetz',sbg:'Salzburg24, Obergrenzen Ortstaxe Land Salzburg',stol:'suedtirol.com, Gemeindeaufenthaltsabgabe ab 2024',kvarner:'Novi list, Boravišna pristojba Kvarner 2026',bdst:'Bund der Steuerzahler, Kommunaldatenbank Bettensteuer 2026',mi:'greenMe 2026, imposta di soggiorno Milano'};
+const OTAXDATA=[
+ // Tirol – Tourismusverbände 2026 (Kinder bis 15 Jahre befreit)
+ ['ischgl|paznaun','AT',{mode:'pp',amt:4.00,kids:14,name:'TVB Paznaun – Ischgl',src:'tirol',note:'Zuordnung im Landes-PDF nicht eindeutig'}],
+ ['galtur','AT',{mode:'pp',amt:4.20,kids:14,name:'Galtür (TVB Paznaun)',src:'tirol'}],
+ ['kappl','AT',{mode:'pp',amt:5.00,kids:14,name:'Kappl (TVB Paznaun)',src:'tirol'}],
+ ['st\\. anton|st\\. christoph|pettneu|flirsch|strengen','AT',{mode:'pp',amt:5.00,kids:14,name:'TVB St. Anton am Arlberg',src:'tirol'}],
+ ['otztal|solden|obergurgl|hochgurgl|langenfeld|umhausen|oetz|vent','AT',{mode:'pp',amt:5.00,kids:14,name:'Ötztal Tourismus',src:'tirol'}],
+ ['stubai|neustift|fulpmes|mieders|telfes|schonberg','AT',{mode:'pp',amt:4.80,kids:14,name:'TVB Stubai Tirol',src:'tirol'}],
+ ['pitztal|wenns|jerzens|st\\. leonhard im pitztal|arzl','AT',{mode:'pp',amt:4.00,kids:14,name:'TVB Pitztal',src:'tirol'}],
+ ['pillersee|fieberbrunn|hochfilzen|st\\. ulrich am pillersee|waidring|st\\. jakob in haus','AT',{mode:'pp',amt:3.90,kids:14,name:'TVB Pillerseetal',src:'tirol',note:'Gültigkeit 2026 im Landes-PDF unklar'}],
+ ['serfaus|fiss|ladis','AT',{mode:'pp',amt:3.70,kids:14,name:'TVB Serfaus-Fiss-Ladis',src:'tirol'}],
+ ['nauders|kaunertal|kauns|kaunerberg|fendels','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Tirol West (Nauders, Kaunertal)',src:'tirol'}],
+ ['tirol west|landeck|zams|fliess|pfunds|prutz|ried im oberinntal','AT',{mode:'pp',amt:2.80,kids:14,name:'TVB Tirol West',src:'tirol'}],
+ ['kitzbuhel|kirchberg in tirol|reith bei kitzbuhel|aurach|jochberg','AT',{mode:'pp',amt:3.50,kids:14,name:'Kitzbühel Tourismus',src:'tirol'}],
+ ['brixental|westendorf|brixen im thale','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Kitzbüheler Alpen – Brixental',src:'tirol'}],
+ ['st\\. johann in tirol|oberndorf in tirol|kirchdorf in tirol|erpfendorf','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Kitzbüheler Alpen – St. Johann',src:'tirol'}],
+ ['wilder kaiser|ellmau|going|scheffau|soll','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Wilder Kaiser',src:'tirol'}],
+ ['hohe salve|hopfgarten|itter|kelchsau|angath|mariastein','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Ferienregion Hohe Salve',src:'tirol'}],
+ ['kufstein|thiersee|ebbs|niederndorf|bad haring|langkampfen','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Kufsteinerland',src:'tirol'}],
+ ['kaiserwinkl|walchsee|kossen|schwendt','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Kaiserwinkl',src:'tirol'}],
+ ['wildschonau|niederau|oberau|auffach','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Wildschönau',src:'tirol'}],
+ ['alpbach|tiroler seenland|reith im alpbachtal|brixlegg|kramsach|rattenberg','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Alpbachtal & Tiroler Seenland',src:'tirol'}],
+ ['achensee|pertisau|maurach|achenkirch|eben am achensee','AT',{mode:'pp',amt:3.00,kids:14,name:'TVB Achensee',src:'tirol'}],
+ ['mayrhofen|hippach|ramsau im zillertal','AT',{mode:'pp',amt:3.20,kids:14,name:'TVB Mayrhofen-Hippach',src:'tirol'}],
+ ['hintertux|tux|finkenberg','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Tux-Finkenberg',src:'tirol'}],
+ ['zell am ziller|gerlos|zillertal arena','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Zell-Gerlos',src:'tirol'}],
+ ['fugen|kaltenbach|uderns|stumm|aschau im zillertal|erste ferienregion','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Erste Ferienregion im Zillertal',src:'tirol'}],
+ ['seefeld|leutasch|mosern|scharnitz|reith bei seefeld','AT',{mode:'pp',amt:3.50,kids:14,name:'Olympiaregion Seefeld',src:'tirol'}],
+ ['ehrwald|lermoos|biberwier|berwang|zugspitz','AT',{mode:'pp',amt:3.00,kids:14,name:'Tiroler Zugspitz Arena',src:'tirol'}],
+ ['tannheim|tannheimer|grän|nesselwangle|jungholz','AT',{mode:'pp',amt:3.50,kids:14,name:'TVB Tannheimer Tal',src:'tirol'}],
+ ['reutte|naturparkregion|breitenwang|hofen','AT',{mode:'pp',amt:3.00,kids:14,name:'Naturparkregion Reutte',src:'tirol'}],
+ ['lechtal|elbigenalp|holzgau|bach|steeg','AT',{mode:'pp',amt:2.60,kids:14,name:'Lechtal Tourismus',src:'tirol'}],
+ ['imst|hoch-imst|tarrenz|nassereith','AT',{mode:'pp',amt:3.00,kids:14,name:'Imst Tourismus',src:'tirol'}],
+ ['innsbruck|igls|mutters|natters|axams|gotzens|patsch','AT',{mode:'pp',amt:3.00,kids:14,name:'Innsbruck und seine Feriendörfer',src:'tirol'}],
+ ['hall in tirol|wattens|hall-wattens|absam|mils','AT',{mode:'pp',amt:2.60,kids:14,name:'Region Hall-Wattens',src:'tirol'}],
+ ['silberregion|schwaz|vomp|weer|pill','AT',{mode:'pp',amt:2.60,kids:14,name:'Silberregion Karwendel',src:'tirol'}],
+ ['wipptal|steinach am brenner|matrei am brenner|gries am brenner|gschnitz','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Wipptal',src:'tirol'}],
+ ['osttirol|lienz|matrei in osttirol|kals|sillian|st\\. jakob in defereggen','AT',{mode:'pp',amt:2.60,kids:14,name:'TVB Osttirol',src:'tirol'}],
+ // Oberösterreich
+ ['st\\. wolfgang','AT',{mode:'pp',amt:3.60,kids:15,name:'St. Wolfgang im Salzkammergut',src:'ooe',note:'ab 15.01.2027: 4,20 €'}],
+ ['bad goisern|gosau|hallstatt|obertraun','AT',{mode:'pp',amt:4.00,kids:15,name:'Inneres Salzkammergut (ab 1.10.2026)',src:'ooe'}],
+ ['bad ischl','AT',{mode:'pp',amt:3.80,kids:15,name:'Bad Ischl (ab 1.11.2026)',src:'ooe'}],
+ ['mondsee|innerschwand|oberhofen am irrsee|oberwang|st\\. lorenz|tiefgraben|zell am moos','AT',{mode:'pp',amt:3.10,kids:15,name:'Mondseeland',src:'ooe'}],
+ // Regionen (Fallback je Bundesland / Provinz)
+ ['@AT33','AT',{mode:'pp',amt:3.00,kids:14,name:'Tirol – typischer Wert',src:'tirol',note:'Je Tourismusverband 2,60 bis 5,00 €; Ort nicht eindeutig zugeordnet',est:1}],
+ ['@AT31','AT',{mode:'pp',amt:2.60,kids:15,name:'Oberösterreich (übrige Gemeinden, ab 1.11.2026)',src:'ooe'}],
+ ['@AT11','AT',{mode:'pp',amt:4.50,kids:15,name:'Burgenland (ab 1.1.2026)',src:'bgld',note:'Kinderbefreiung bitte prüfen'}],
+ ['@AT21','AT',{mode:'pp',amt:4.50,kids:16,name:'Kärnten (ab 1.11.2026, vorbehaltlich Gesetzesbeschluss)',src:'ktn',note:'Bis 31.10.2026: 2,70 €'}],
+ ['@AT13','AT',{mode:'pct',amt:5,base:'net',kids:0,name:'Wien (seit 07/2026)',src:'wien',note:'% vom Nächtigungsentgelt; ab 07/2027 sind 8 % geplant'}],
+ ['@AT32','AT',{mode:'pp',amt:4.00,kids:14,name:'Land Salzburg – Schätzwert',src:'sbg',note:'Je Gemeinde; Obergrenzen ab 1.10.2026: Ortsklasse A/B 5,00 €, C 3,50 €',est:1}],
+ ['@ITH1','IT',{mode:'pp',stars:{5:2.50,4:2.50,3:2.00,0:1.50},kids:13,name:'Südtirol (Landesvorgabe nach Sternen)',src:'stol',note:'Gemeinden dürfen bis 5,00 € erhöhen – Gemeinde prüfen'}],
+ // Kroatien – Kvarner, Hauptsaison April–September
+ ['opatija|lovran|matulji|moscenicka draga|crikvenica|novi vinodolski|vinodolsk|omisalj','HR',{mode:'pp',amt:2.50,kids:0,name:'Kvarner (Hauptsaison)',src:'kvarner',note:'Wert für 1.4.–30.9.; Nebensaison meist niedriger; Kinderermäßigung bitte prüfen'}],
+ ['baska','HR',{mode:'pp',amt:2.20,kids:0,name:'Baška (Hauptsaison)',src:'kvarner'}],
+ ['rijeka|kastav|klana|viskovo|dobrinj|malinska|punat|vrbnik|mali losinj|losinj','HR',{mode:'pp',amt:2.00,kids:0,name:'Kvarner (Hauptsaison)',src:'kvarner',note:'Wert für 1.4.–30.9.'}],
+ ['^krk|krk,|grad krk|^rab|lopar','HR',{mode:'pp',amt:1.90,kids:0,name:'Krk / Rab (Hauptsaison)',src:'kvarner'}],
+ ['cres','HR',{mode:'pp',amt:1.80,kids:0,name:'Cres (Hauptsaison)',src:'kvarner'}],
+ // Deutschland – Übernachtungs-/Bettensteuer
+ ['berlin','DE',{mode:'pct',amt:7.5,base:'net',kids:0,name:'Berlin City Tax',src:'bdst'}],
+ ['koln|cologne','DE',{mode:'pct',amt:5,base:'gross',kids:0,name:'Köln Kulturförderabgabe',src:'bdst'}],
+ ['leipzig','DE',{mode:'pct',amt:5,base:'gross',kids:0,name:'Leipzig',src:'bdst'}],
+ ['dresden','DE',{mode:'pct',amt:6,base:'gross',kids:0,name:'Dresden',src:'bdst'}],
+ ['bremen','DE',{mode:'pct',amt:5.5,base:'net',kids:0,name:'Bremen',src:'bdst'}],
+ ['freiburg','DE',{mode:'pct',amt:5,base:'net',kids:0,name:'Freiburg im Breisgau',src:'bdst'}],
+ ['frankfurt','DE',{mode:'pp',amt:2.00,kids:0,name:'Frankfurt am Main',src:'bdst'}],
+ ['dusseldorf','DE',{mode:'pp',amt:3.00,kids:0,name:'Düsseldorf',src:'bdst'}],
+ ['stuttgart','DE',{mode:'pp',amt:3.00,kids:0,name:'Stuttgart',src:'bdst'}],
+ ['heidelberg','DE',{mode:'pp',amt:3.50,kids:0,name:'Heidelberg',src:'bdst'}],
+ // Italien
+ ['milano|milan|mailand','IT',{mode:'pp',stars:{5:10,4:10,3:7.40,0:7.40},kids:0,name:'Milano',src:'mi',note:'1–2 Sterne nicht recherchiert; Kinderbefreiung bitte prüfen'}]
+];
+const STARS={Economy:2,Midscale:3,'Upper Midscale':3,Upscale:4,'Upper Upscale':4,Luxury:5};
+function otaxAuto(){
+  const loc=deacc(S.p.location), cc=S.p.country;
+  let hit=null;
+  for(const [k,c,v] of OTAXDATA){if(k[0]==='@')continue;if(c!==cc&&!(cc==='XX'))continue;if(new RegExp('(^|[^a-z])('+k+')([^a-z]|$)').test(loc)){hit=v;break}}
+  if(!hit){const r=seasRegion();if(r){const e=OTAXDATA.find(x=>x[0]==='@'+r.code);if(e)hit=e[2]}}
+  if(!hit)return null;
+  const st=STARS[S.p.cls]||4;
+  const amt=hit.stars?(hit.stars[st]!=null?hit.stars[st]:hit.stars[0]):hit.amt;
+  return Object.assign({},hit,{amt,starsUsed:hit.stars?st:null});
+}
+const otaxKey=()=>[S.p.location,S.p.country,S.p.cls].join('|');
+function otaxApply(force){const O=S.r.otax,a=otaxAuto();
+  if(!a){if(force||!O.manual){O.amt=0;O.mode='pp';O.for=otaxKey()}return}
+  if(force||!O.manual){O.mode=a.mode;O.amt=a.amt;O.base=a.base||'net';O.kids=a.kids;O.manual=false;O.for=otaxKey()}}
+/* Ortstaxe je Monat: g = Gäste, mrev = Logisumsatz netto */
+function otaxMonth(S,g,mrev,pi){const O=S.r.otax||{};if(!(+O.amt>0))return 0;
+  if(O.mode==='pct')return mrev*(+O.amt)/100*(O.base==='gross'?1+S.vat.rooms/100:1);
+  const kf=O.kidsEx===false?1:1-(+S.r.kids||0)/100;return g*kf*(+O.amt)*pi}
+function otaxInfo(){const a=otaxAuto(),O=S.r.otax;
+  if(!S.p.location)return 'Standort in Schritt 1 eintragen – die Ortstaxe wird dann automatisch vorgeschlagen.';
+  if(!a)return `<span class="pill warn">keine Vorgabe</span> Für „${esc(S.p.location)}“ ist keine Ortstaxe hinterlegt. Bitte den Betrag der Gemeinde eintragen.`;
+  const val=a.mode==='pct'?NF1.format(a.amt)+' % vom Logispreis '+(a.base==='gross'?'(brutto)':'(netto)'):NF2.format(a.amt)+' € pro Person und Nacht'+(a.starsUsed?` (${a.starsUsed} Sterne laut Klassifizierung)`:'');
+  const same=O.mode===a.mode&&Math.abs((+O.amt||0)-a.amt)<0.005;
+  return `<b>Vorschlag:</b> ${esc(a.name)} · ${val}${a.kids?` · Kinder bis ${a.kids} Jahre befreit`:''}${a.note?` · ${esc(a.note)}`:''}<br><span class="muted">Quelle: ${esc(OTAX_SRC[a.src]||'')}, Stand ${OTAX_STAND}. ${a.est?'Schätzwert, ':''}Bitte mit der Gemeinde bzw. dem Tourismusverband abgleichen.</span>
+    ${same?' <span class="pill good">übernommen</span>':` <button class="btn" type="button" data-otax="apply" style="padding:4px 10px">Vorschlag übernehmen</button>`}`;
+}
+function otaxBlock(){const O=S.r.otax;
+  return `<h3 class="fsub">Ortstaxe</h3>
+   <div class="grid">${SEL('r.otax.mode','Berechnung',[['pp','€ pro Person und Nacht'],['pct','% vom Logispreis']],{rr:1})}
+    ${NUM('r.otax.amt','Ortstaxe',O.mode==='pct'?'%':'€ / Pers.',{tip:'Wird anhand des Standorts automatisch vorgeschlagen und lässt sich überschreiben'})}
+    ${O.mode==='pct'?SEL('r.otax.base','Bemessung',[['net','Logispreis netto'],['gross','Logispreis brutto']]):`<div style="display:flex;align-items:end;padding-bottom:6px">${CHK('r.otax.kidsEx','Kinder befreit (Kinderanteil)')}</div>`}
+    <div style="display:flex;align-items:end;padding-bottom:6px">${CHK('r.otax.incl','Im Zimmerpreis enthalten',{rr:1})}</div></div>
+   <p class="hint" style="margin-top:10px" id="otaxInfo">${otaxInfo()}</p>
+   <p class="hint" style="margin-top:4px">${O.incl?'Enthalten: Die Ortstaxe wird vom Zimmerumsatz abgezogen und an die Gemeinde abgeführt.':'Nicht enthalten: Der Gast zahlt sie zusätzlich. Sie ist kein Umsatz und ändert das Ergebnis nicht.'}</p>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-otax]');if(!b)return;otaxApply(true);RES=computeAll(S);saveLS();renderStep(true);toast('Ortstaxe übernommen')});
+
+if(S.r&&S.r.otax&&S.r.otax.amt==null){otaxApply(false);RES=computeAll(S);saveLS()}
+
 /* ================= PDF-Export (USALI) ================= */
 async function logoPng(){
   try{
@@ -2117,6 +2246,7 @@ async function makePdf(handle){
     ['MwSt.',`${VATP[S.p.country]?.n||''}: Beherbergung ${e1(S.vat.rooms)} % · Speisen ${e1(S.vat.food)} % · Getränke ${e1(S.vat.bev)} % · ${vatIssues(S).length?'PRÜFUNG OFFEN':'geprüft am '+S.vat.checkedAt}`],
     ['Indexierung',`Umsatz ${e1(S.idx.rev)} % · Kosten ${e1(S.idx.cost)} % · Reallohn +${e1(S.idx.wage)} % p.a.`],
     ['Betrieb',`${e0(sum(S.cal.map(c=>c.open?+c.days:0)))} Öffnungstage · Ø Belegung stabil ${pc(RES[S.p.stab-1].occ)}`],
+    ['Ortstaxe',(+S.r.otax.amt>0)?`${S.r.otax.mode==='pct'?NF1.format(S.r.otax.amt)+' % vom Logispreis':NF2.format(S.r.otax.amt)+' EUR pro Person und Nacht'} · ${S.r.otax.incl?'im Zimmerpreis enthalten (vom Umsatz abgezogen)':'zusätzlich verrechnet (durchlaufend)'} · ${e0(R.otax)} EUR p.a.`:'nicht erfasst'],
     ['Rack Rates netto',`NS ${e0(S.r.rate.L)} / ZS ${e0(S.r.rate.M)} / HS ${e0(S.r.rate.H)} € · ${({RO:'nur Logis',BB:'inkl. Frühstück',HB:'inkl. Halbpension'})[S.r.pkg]}${S.r.pkg!=='RO'?` · Split Frühstück ${e1(S.r.bfSplit)} €/Pers.`:''}${S.r.pkg==='HB'?` · Abendessen ${e1(S.r.hbSplit)} €/Pers.`:''}`],
     ['F&B',S.f.outlets.map(o=>`${o.name} (${o.seats} Pl.)`).join(', ')+` · Wareneinsatz F ${e1(S.f.exp.food)} % / B ${e1(S.f.exp.bev)} %`],
     ['MICE',`${S.m.rooms.length} Räume · Ganztag F ${e0(S.m.pk.full.food)} / B ${e0(S.m.pk.full.bev)} / IT ${e0(S.m.pk.full.it)} / Misc ${e0(S.m.pk.full.misc)} € + Raum · Halbtag F ${e0(S.m.pk.half.food)} / B ${e0(S.m.pk.half.bev)} / IT ${e0(S.m.pk.half.it)} / Misc ${e0(S.m.pk.half.misc)} € + Raum · Ø Raumbelegung ${pc(R.mice.util)} · ${e0(S.m.banq.events)} Bankette p.a.`],
