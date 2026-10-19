@@ -1482,7 +1482,8 @@ function finCompute(opt){
   const SUBS=opt&&opt.noSubs?[]:(F.subs||[]).map((u,i)=>Object.assign({i},u)).filter(u=>!(opt&&opt.excl===u.i));
   const subAmt=u=>u.kind==='grant'?(+u.base||0)*(+u.pct||0)/100:u.kind==='credit'?Math.min((+u.base||0)*(+u.pct||0)/100,(+u.cap>0?+u.cap:Infinity)):u.kind==='extra'?(+u.base||0)*Math.max(0,(+u.pct||0)-100)/100:u.kind==='loan'?(+u.amt||0):0;
   const grants=SUBS.filter(u=>u.kind==='grant'), g0=sum(grants.filter(u=>!(+u.payYear>0)).map(subAmt));
-  const gLater=y=>sum(grants.filter(u=>Math.round(+u.payYear)===y).map(subAmt));
+  const gLater=y=>sum(grants.filter(u=>Math.round(+u.payYear)===y&&!u.toLoan).map(subAmt));
+  const gLaterLoan=y=>sum(grants.filter(u=>Math.round(+u.payYear)===y&&u.toLoan).map(subAmt));
   if(SUBS.some(u=>u.kind==='credit'||u.kind==='extra')&&!taxOn)warn.push(['Steuerabsetzbetrag und Mehrabschreibung wirken nur, wenn die Ertragsteuern eingeschaltet sind.','finanz|sec-ftax']);
   // Investition
   const costs=sum(F.costs.map(c=>c.amt));
@@ -1554,7 +1555,7 @@ function finCompute(opt){
     taxSum+=tax;creditSum+=cUse;extraSum+=xUse;
     let surplus=mehr-ds-tax;
     // spätere Zuschüsse tilgen den Bankkredit, Rest bleibt den Eigentümern
-    const gi=gLater(y); let gRep=0; if(gi>0){gRep=Math.min(gi,bal-pr);surplus+=gi-gRep}
+    const gi=gLater(y), gl=gLaterLoan(y); let gRep=0; surplus+=gi; if(gl>0){gRep=Math.min(gl,bal-pr);surplus+=gl-gRep}
     const extra=bal-pr-gRep>0.5?Math.min(bal-pr-gRep,Math.max(0,surplus)*sw):0;
     surplus-=extra; bal=Math.max(0,bal-pr-gRep-extra);
     const balAll=bal+sum(subL.map(x=>x.bal));
@@ -1562,7 +1563,7 @@ function finCompute(opt){
     const dscr=(ds+ex)>0.5?pc_/(ds+ex):null;
     const prev=cum; cum+=surplus;
     if(payback==null&&EK>0&&cum>=0&&surplus>0)payback=y-1+(-prev)/surplus;
-    rows.push({y,cal,plan:pc_,best:bc,mehr,int,pr:pr+prS,extra:extra+gRep,ds:ds,dscr,surplus,afa,taxable,tax,carry,taxRate:RT.rate,taxTxt:RT.txt,cum:cum+EK,bal:balAll,grantIn:gi,credit:cUse,xben:xUse,opco:own?null:opco(cal),rev:planRev(cal),total:pc_-ds-extra-ex});
+    rows.push({y,cal,plan:pc_,best:bc,mehr,int,pr:pr+prS,extra:extra+gRep,ds:ds,dscr,surplus,afa,taxable,tax,carry,taxRate:RT.rate,taxTxt:RT.txt,cum:cum+EK,bal:balAll,grantIn:gi+gl,credit:cUse,xben:xUse,opco:own?null:opco(cal),rev:planRev(cal),total:pc_-ds-extra-ex});
     cfs.push(surplus);
   }
   if(EK<=0)payback=0;
@@ -1574,18 +1575,20 @@ function finCompute(opt){
   const avgYield=EK>0?sum(rows.slice(1).map(x=>x.surplus))/H/EK:null;
   // Vorteil je Förderung
   const subRes=[];
-  grants.forEach((u,k)=>subRes.push({i:u.i,name:u.name,kind:u.kind,nominal:grantBen[k],value:grantBen[k],note:+u.payYear>0?`Auszahlung ${cal0+Math.round(+u.payYear)}, tilgt Kredit`:'Auszahlung in der Bauphase, senkt den Finanzierungsbedarf'}));
+  grants.forEach((u,k)=>subRes.push({i:u.i,name:u.name,kind:u.kind,nominal:grantBen[k],value:grantBen[k],note:+u.payYear>0?`Auszahlung ${cal0+Math.round(+u.payYear)}${u.toLoan?', tilgt Kredit':', fließt an die Eigentümer'}`:'Auszahlung in der Bauphase, senkt den Finanzierungsbedarf'}));
   credits.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'credit',nominal:x.tot,value:x.used,note:!taxOn?'Ertragsteuern ausgeschaltet':x.lost>1?`${e0(x.lost)} € verfallen, weil die Steuerlast zu gering ist`:'voll genutzt'}));
   extras.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'extra',nominal:x.tot,value:x.ben,unusedTxt:x.unused>1?`; ${e0(x.unused)} € zunächst ohne Gewinn, wirken über den Verlustvortrag später`:'',note:!taxOn?'Ertragsteuern ausgeschaltet':''}));
   subL.forEach(x=>subRes.push({i:x.u.i,name:x.u.name,kind:'loan',nominal:subAmt(x.u),value:x.ben,note:'Zinsersparnis gegenüber dem Bankzins'}));
   zins.forEach((u,k)=>subRes.push({i:u.i,name:u.name,kind:'zins',nominal:null,value:zinsBen[k],note:'Zinsersparnis auf den Bankkredit'}));
   subRes.sort((a,b)=>a.i-b.i);
+  if(taxOn&&credits.some(x=>x.lost>1)&&!(+T.baseTax>0))warn.push(['Steuerabsetzbeträge verfallen, weil nur der Mehrgewinn betrachtet wird. Tragen Sie unter Ertragsteuern die bisherige Steuerlast des Betriebs ein, damit sie gegen die laufende Steuer verrechnet werden.','finanz|sec-ftax']);
   const R={taxOn,taxSum,creditSum,extraSum,own,reno,H,cal0,costs,loss,b0,idc,total,EK,L,Lb,Lsub,g0,rows,minD,firstLow,dmin,payback,paidOff,irr,avgYield,warn,bestName,bestOk,free,lin,term,subRes,
     bal10:(rows[Math.min(10,H)]||{}).bal,planName:'Planfall'};
   if(!opt&&SUBS.length){R.noSub=finCompute({noSubs:true});
     // Steuerwirkung je Förderung: Vergleich mit einer Rechnung ohne diese Förderung
+    const sAll=sum(rows.slice(1).map(r=>r.surplus));
     R.subRes.forEach(x=>{const o=finCompute({excl:x.i});const d=o.taxSum-taxSum;x.taxEff=d;
-      x.value=(x.kind==='grant'?x.nominal:x.kind==='loan'||x.kind==='zins'?x.value:0)+d;
+      x.value=(sAll-sum(o.rows.slice(1).map(r=>r.surplus)))+(o.EK-EK);
       if(x.kind==='extra')x.note=`${e0(x.nominal)} € zusätzliche Abschreibung, Steuerersparnis im Betrachtungszeitraum`+(x.unusedTxt||'');
       if((x.kind==='grant'||x.kind==='loan'||x.kind==='zins')&&Math.abs(d)>1)x.note+=` · Steuerwirkung ${d>0?'+':''}${e0(d)} €`});}
   return R;
@@ -1750,7 +1753,7 @@ MODRES.finanz=()=>'';
 
 /* ---------- Förderungen ---------- */
 const SUBKIND=[['grant','Zuschuss (Barzuschuss)'],['credit','Steuerabsetzbetrag (Steuergutschrift)'],['extra','Mehrabschreibung (Super-/Hyperabschreibung)'],['loan','Geförderter Kredit'],['zins','Zinszuschuss auf den Bankkredit']];
-const SUBHINT={grant:'Anteil der förderbaren Investition als Zuschuss. Auszahlung 0 = in der Bauphase, sonst im angegebenen Betriebsjahr (tilgt dann den Bankkredit). Der Zuschuss mindert die Abschreibungsbasis.',
+const SUBHINT={grant:'Anteil der förderbaren Investition als Zuschuss. Auszahlung 0 = in der Bauphase, sonst im angegebenen Betriebsjahr (fließt dann an die Eigentümer oder tilgt wahlweise den Bankkredit). Der Zuschuss mindert die Abschreibungsbasis.',
   credit:'Prozentsatz der förderbaren Investition, verteilt auf die angegebenen Jahre, direkt von der zu zahlenden Steuer abgezogen. Nur nutzbar, soweit Steuer anfällt; nicht genutzte Beträge verfallen.',
   extra:'Abschreibung gesamt in Prozent der Investition (z. B. 180 %). Die zusätzlichen 80 % senken den zu versteuernden Gewinn. Eigener Steuersatz möglich (Italien: nur IRES 24 %).',
   loan:'Ersetzt diesen Betrag des Bankkredits. Eigener Zins, eigene Laufzeit, tilgungsfreie Jahre, danach Annuität.',
@@ -1758,7 +1761,7 @@ const SUBHINT={grant:'Anteil der förderbaren Investition als Zuschuss. Auszahlu
 function subsHtml(){
   const L=S.fin.subs||[];
   const card=(u,i)=>{const p=`fin.subs.${i}.`,k=u.kind;
-    const f=k==='grant'?NUM(p+'base','Förderbare Investition','€')+NUM(p+'pct','Zuschuss','%')+NUM(p+'payYear','Auszahlung','Betriebsjahr',{tip:'0 = während der Bauphase, 1 = erstes Betriebsjahr usw.'})+NUM(p+'afaN','Abschreibung der Anlage','Jahre')
+    const f=k==='grant'?NUM(p+'base','Förderbare Investition','€')+NUM(p+'pct','Zuschuss','%')+NUM(p+'payYear','Auszahlung','Betriebsjahr',{tip:'0 = während der Bauphase, 1 = erstes Betriebsjahr usw.'})+NUM(p+'afaN','Abschreibung der Anlage','Jahre')+(+u.payYear>0?`<div style="display:flex;align-items:end;padding-bottom:6px">${CHK(p+'toLoan','Zur Kredittilgung verwenden')}</div>`:'')
       :k==='credit'?NUM(p+'base','Förderbare Investition','€')+NUM(p+'pct','Absetzbetrag','%')+NUM(p+'cap','Höchstbetrag','€',{tip:'0 = ohne Höchstbetrag'})+NUM(p+'years','Verteilt auf','Jahre')
       :k==='extra'?NUM(p+'base','Investition','€')+NUM(p+'pct','Abschreibung gesamt','%')+NUM(p+'years','Über','Jahre')+NUM(p+'rateE','Steuersatz dafür','%',{nul:1,tip:'Leer = allgemeiner Steuersatz. Für Italien 24 % (nur IRES).'})
       :k==='loan'?NUM(p+'amt','Kreditbetrag','€')+NUM(p+'rate','Zinssatz','% p.a.')+NUM(p+'term','Laufzeit','Jahre')+NUM(p+'free','Tilgungsfreie Jahre','Jahre')
