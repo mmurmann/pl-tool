@@ -1092,14 +1092,17 @@ const MODRES={
 /* ================= Rendering ================= */
 function renderNav(){
   $('#stepList').innerHTML=STEPS.map(([k,l],i)=>`<li><button type="button" data-step="${k}" class="${k===step?'on':''}"><span class="n">${i+1}</span><span>${esc(l)}</span></button></li>`).join('')
-   +`<li class="res"><button type="button" data-step="ergebnis" class="${step==='ergebnis'?'on':''}"><span class="n">∑</span><span>USALI Ergebnis</span></button></li>`;
+   +`<li class="res"><button type="button" data-step="ergebnis" class="${step==='ergebnis'?'on':''}"><span class="n">∑</span><span>USALI Ergebnis</span></button></li>`
+   +(S.alt?`<li class="res"><button type="button" data-step="vergleich" class="${step==='vergleich'?'on':''}"><span class="n">⇄</span><span>Vergleich Bestand / Planfall</span></button></li>`:'');
 }
 function renderScenSeg(){const el=$('#scenSeg');if(el)el.innerHTML=SCEN.map(k=>`<button type="button" data-scen="${k}" class="${(S.scen||'Base')===k?'on':''}">${k}</button>`).join('')}
 function renderStep(keepScroll){
   renderScenSeg(); ui.finC=null;
   const y=window.scrollY;
-  $('#app').classList.toggle('result-mode',step==='ergebnis');
+  if(step==='vergleich'&&!S.alt)step='finanz';
+  $('#app').classList.toggle('result-mode',step==='ergebnis'||step==='vergleich');
   if(step==='ergebnis'){renderResult();}
+  else if(step==='vergleich'){renderCompare();}
   else{
     const i=STEPS.findIndex(s=>s[0]===step), v=VIEWS[step]();
     const mr=MODRES[step]();
@@ -1369,7 +1372,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.step){goto(b.dataset.step,null);return}
   if(b.dataset.go){const [s,a]=b.dataset.go.split('|');goto(s,a);return}
-  if(b.dataset.unit){ui.unit=b.dataset.unit;renderResult();return}
+  if(b.dataset.unit){ui.unit=b.dataset.unit;if(step==='vergleich')renderCompare();else renderResult();return}
   if(b.dataset.scen){ui.prev=stab();S.scen=b.dataset.scen;RES=computeAll(S);saveLS();renderStep(true);renderScenSeg();toast('Szenario '+S.scen);return}
   if(b.id==='btnXlsF'||b.id==='btnXlsV'){const wf=b.id==='btnXlsF';pickSave(xlsxName(wf),XLSX_MIME).then(h=>{if(h!==false)makeXlsx(wf,h)});return}
   if(b.dataset.act==='vatPreset'){const P=VATP[S.p.country];if(P&&P.rooms!=null){S.vat.rooms=P.rooms;S.vat.food=P.food;S.vat.bev=P.bev;S.vat.checked=false}RES=computeAll(S);saveLS();renderStep(true);return}
@@ -1714,7 +1717,7 @@ VIEWS.finanz=()=>{const F=S.fin, reno=F.type==='reno';
      <div class="kvline">Bestand: ${calc('finAlt')}</div>
      <div class="btnrow">${F.cmp==='B'?(S.var==='bestand'?'':`<button class="btn" type="button" data-fin="copy">${S.alt?'Bestand neu aus Planfall kopieren (ersetzt)':'Planfall als Bestand kopieren'}</button>`)
        :`<button class="btn" type="button" data-fin="file">${S.alt?'Andere Datei laden (ersetzt)':'Projektdatei laden'}</button><input type="file" id="finFile" accept=".json,application/json" hidden>`}
-       ${S.alt?`<button class="btn primary" type="button" data-fin="switch">${S.var==='bestand'?'Zurück zum Planfall':'Bestand bearbeiten'}</button>`:''}</div>`;
+       ${S.alt?`<button class="btn" type="button" data-step="vergleich">Vergleich der stabilisierten Jahre</button>`:''}${S.alt?`<button class="btn primary" type="button" data-fin="switch">${S.var==='bestand'?'Zurück zum Planfall':'Bestand bearbeiten'}</button>`:''}</div>`;
   return {t:'Finanzierung & Rückzahlung',lead:'Wie viel kostet das Vorhaben, wie viel davon kommt aus Eigenkapital und Kredit, und trägt der Mehrertrag die Bankrate? Das P&L der vorigen Schritte ist der Planfall nach der Investition.',
   html:block('sec-fart','Projektart & Struktur','Bei Eigentümer = Betreiber zahlt der Cashflow des Hotels die Bank. Bei PropCo / OpCo nimmt die Eigentümergesellschaft den Kredit auf und bedient ihn aus der Pacht des Betreibers.',
      `<div class="grid">${SEL('fin.type','Projektart',FTYPE,{rr:1})}${SEL('fin.struct','Struktur',FSTRUCT,{rr:1})}</div>`)
@@ -2136,6 +2139,42 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-otax
 
 if(S.r&&S.r.otax&&S.r.otax.amt==null){otaxApply(false);RES=computeAll(S);saveLS()}
 
+/* ================= Vergleich stabilisierte Jahre (Bestand / Planfall) ================= */
+const CMPSTAT=[['Keys',R=>R.keys,'n0'],['Available Rooms',R=>R.avail,'n0'],['Rooms Sold',R=>R.sold,'n0'],['Occupancy',R=>R.occ,'pct'],
+ ['ADR (€)',R=>R.adr,'n0'],['RevPAR (€)',R=>R.revpar,'n0'],['TRevPAR (€)',R=>R.trevpar,'n0'],['GOPPAR (€)',R=>R.goppar,'n0'],
+ ['GOP-Marge',R=>R.tr?R.gop/R.tr:0,'pct'],['EBITDA-Marge',R=>R.tr?R.ebitda/R.tr:0,'pct'],['FTE (Ø Saison)',R=>R.fte,'n1'],['Payroll in % Revenue',R=>R.tr?R.payTotal/R.tr:0,'pct']];
+function cmpData(){
+  const P=variantOf('neu'), B=variantOf('bestand'); if(!P||!B)return null;
+  const sp=clamp(+P.p.stab||1,1,10), sb=clamp(+B.p.stab||1,1,10);
+  const Rp=(P===S?RES:computeAll(P,S.scen))[sp-1], Rb=(B===S?RES:computeAll(B,S.scen))[sb-1];
+  return {P,B,Rp,Rb,sp,sb};
+}
+function renderCompare(){
+  const D=cmpData();
+  if(!D){$('#main').innerHTML=`<div class="stephead"><div><div class="eyebrow">Vergleich</div><h1>Bestand / Planfall</h1></div></div><p class="lead">Es ist noch kein Bestand hinterlegt. Legen Sie unter <button type="button" class="lnk" data-go="finanz|sec-fcmp"><b>Finanzierung & Rückzahlung</b></button> eine Bestandsvariante an oder laden Sie eine Projektdatei.</p>`;return}
+  const {Rp,Rb,P,B,sp,sb}=D;
+  const dv=(a,b)=>{const d=a-b;return `<td class="${d<-0.5?'neg':''}">${d>0.5?'+':''}${money(d)}</td><td class="pc">${Math.abs(b)>0.5?(d>=0?'+':'')+NF1.format(d/Math.abs(b)*100)+' %':'–'}</td>`};
+  const body=summaryRows().filter(r=>r[0]!=='stat'&&r[1]!=='Statistics').map(([t,l,f,go,bs])=>{
+    if(t==='hd')return `<tr class="hd"><td colspan="5">${esc(l)}</td></tr>`;
+    const a=f(Rb),b=f(Rp),cls=t==='gop'?'key gop':t==='row'?'':t;
+    return `<tr class="${cls}"><td>${lab(l,go)}</td><td>${money(a)}${pv(a,baseOf(Rb,bs))}</td><td class="dy">${money(b)}${pv(b,baseOf(Rp,bs))}</td>${dv(b,a)}</tr>`}).join('');
+  const fmt=(v,k)=>k==='pct'?pc(v):k==='n1'?e1(v):e0(v);
+  const stats=CMPSTAT.map(([l,f,k])=>{const a=f(Rb),b=f(Rp),d=b-a;
+    return `<tr class="sub"><td>${l}</td><td>${fmt(a,k)}</td><td class="dy">${fmt(b,k)}</td><td class="${d<0?'neg':''}">${k==='pct'?(d>=0?'+':'')+NF1.format(d*100)+' pp':(d>=0?'+':'')+fmt(d,k)}</td><td class="pc">${k!=='pct'&&Math.abs(a)>0.0001?(d>=0?'+':'')+NF1.format(d/Math.abs(a)*100)+' %':'–'}</td></tr>`}).join('');
+  const kp=[['Total Revenue',Rb.tr,Rp.tr],['GOP',Rb.gop,Rp.gop],['EBITDA',Rb.ebitda,Rp.ebitda],['EBITDA n. Reserve',Rb.ebitdaR,Rp.ebitdaR]];
+  const srcTxt=S.fin.altSrc==='C'?'Projektdatei '+(S.fin.altName||''):'Bestandsvariante im Tool';
+  $('#main').innerHTML=`<div class="stephead"><div><div class="eyebrow">Vergleich · stabilisierte Jahre · Szenario ${esc(S.scen||'Base')}</div><h1>Bestand / Planfall</h1></div></div>
+  <p class="lead">Bestand: ${esc(srcTxt)} · ${esc(B.p.name||'')}, ${yLabel(sb)} = ${Rb.cal}. Planfall: ${esc(P.p.name||'')}, ${yLabel(sp)} = ${Rp.cal}. Werte nominal im jeweiligen Kalenderjahr; % neben den Werten wie im USALI-Ergebnis.</p>
+  <div class="res-toolbar noprint">
+    <div class="f"><span style="font-size:12.5px;color:var(--ink-2)">Einheit</span><div class="seg" role="group" aria-label="Einheit"><button type="button" data-unit="EUR" class="${ui.unit==='EUR'?'on':''}">EUR</button><button type="button" data-unit="T€" class="${ui.unit==='T€'?'on':''}">T€</button></div></div>
+    <button class="btn" type="button" data-step="finanz">Zur Finanzierung</button><button class="btn" type="button" data-step="ergebnis">USALI-Ergebnis</button></div>
+  <div class="kpis">${kp.map(([l,a,b])=>`<div class="kpi"><small>${l}</small><strong>${e0((b-a)/1000)} T€</strong><span>${e0(a/1000)} → ${e0(b/1000)} T€ · ${Math.abs(a)>0.5?(b-a>=0?'+':'')+NF1.format((b-a)/Math.abs(a)*100)+' %':''}</span></div>`).join('')}</div>
+  <div class="usali"><div class="usali-h"><h2>Summary Operating Statement · Vergleich</h2><small>${ui.unit} · Δ = Planfall − Bestand</small></div>
+   <div class="tw"><table class="u cmp"><thead><tr><th>Position</th><th>Bestand<span class="ys">${yLabel(sb)} · ${Rb.cal} · ${ui.unit} | %</span></th><th class="dy">Planfall<span class="ys">${yLabel(sp)} · ${Rp.cal} · ${ui.unit} | %</span></th><th>Δ</th><th>Δ %</th></tr></thead>
+   <tbody>${body}<tr class="hd"><td colspan="5">Statistics</td></tr>${stats}</tbody></table></div></div>
+  <p class="note">Bestand und Planfall werden jeweils in ihrem eigenen stabilisierten Jahr verglichen. Liegen diese Jahre unterschiedlich, enthalten die Werte unterschiedlich viel Indexierung.</p>`;
+}
+
 /* ================= PDF-Export (USALI) ================= */
 async function logoPng(){
   try{
@@ -2291,6 +2330,25 @@ async function makePdf(handle){
    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(120,115,117);
    doc.text(pdfTxt(`${own?'Cashflow = EBITDA nach FF&E-Rücklage (Pacht aus dem P&L nicht abgezogen).':'PropCo bedient den Kredit aus der Pacht.'} Mehrertrag = Planfall minus Bestand. Deckung = Cashflow / (Bankrate + bestehender Schuldendienst). ${F.taxOn?'Ertragsteuern auf den Mehrgewinn (Mehrertrag - Zinsen - Abschreibung) mit Verlustvortrag, Satz je Land und Jahr; Deckung vor Steuern.':'Ohne Ertragsteuern.'} Ohne Verkaufs- oder Restwert. Jahre nach dem 10. Betriebsjahr mit Umsatzindex fortgeschrieben.`),M,Math.min(196,doc.lastAutoTable.finalY+6),{maxWidth:TW});
   }
+
+  /* Vergleich Bestand / Planfall */
+  {const D=cmpData(); if(D){const {Rp,Rb,sp,sb}=D;
+   doc.addPage();header('Vergleich Bestand / Planfall',sub);
+   doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...CHAR);doc.text(pdfTxt('VERGLEICH STABILISIERTE JAHRE'),M,29);
+   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(120,115,117);
+   doc.text(pdfTxt(`Bestand: ${S.fin.altSrc==='C'?'Projektdatei '+(S.fin.altName||''):'Bestandsvariante'} · ${yLabel(sb)} ${Rb.cal} | Planfall: ${yLabel(sp)} ${Rp.cal} · Szenario ${S.scen||'Base'} · ${uTxt} · Delta = Planfall - Bestand`),M,34);
+   const ty=[],bd=[];const pcx=(v,b)=>b?pdfTxt(NF1.format(v/b*100)+' %'):'-';
+   const dd=(a,b)=>[mon(b-a),Math.abs(a)>0.5?pdfTxt((b-a>=0?'+':'')+NF1.format((b-a)/Math.abs(a)*100)+' %'):'-'];
+   summaryRows().filter(r=>r[0]!=='stat'&&r[1]!=='Statistics').forEach(([t,l,f,go,bs])=>{ty.push(t);if(t==='hd'){bd.push([{content:pdfTxt(l.toUpperCase()),colSpan:7,styles:{halign:'left'}}]);return}
+     const a=f(Rb),b=f(Rp);bd.push([pdfTxt(l),mon(a),pcx(a,baseOf(Rb,bs)),mon(b),pcx(b,baseOf(Rp,bs)),...dd(a,b)])});
+   ty.push('hd');bd.push([{content:'STATISTICS',colSpan:7,styles:{halign:'left'}}]);
+   const fmt=(v,k)=>k==='pct'?pc(v):k==='n1'?e1(v):e0(v);
+   CMPSTAT.forEach(([l,f,k])=>{const a=f(Rb),b=f(Rp),d=b-a;ty.push('sub');bd.push([pdfTxt(l),pdfTxt(fmt(a,k)),'',pdfTxt(fmt(b,k)),'',pdfTxt(k==='pct'?(d>=0?'+':'')+NF1.format(d*100)+' pp':(d>=0?'+':'')+fmt(d,k)),k!=='pct'&&Math.abs(a)>0.0001?pdfTxt((d>=0?'+':'')+NF1.format(d/Math.abs(a)*100)+' %'):'-'])});
+   doc.autoTable({startY:38,margin:{left:M,right:M,bottom:14,top:26},tableWidth:TW,theme:'plain',styles:{...baseStyles,fontSize:6.8},headStyles:{...headStyles,fontSize:6.6},showHead:'everyPage',
+     head:[[pdfTxt('Position'),'Bestand','%','Planfall','%',pdfTxt('Delta'),pdfTxt('Delta %')]],body:bd,columnStyles:{0:{halign:'left',cellWidth:TW-150}},
+     didParseCell:d=>{styleRow(d,ty);if(d.section==='head'&&d.column.index===0)d.cell.styles.halign='left'},
+     didDrawPage:d=>{if(d.pageNumber>1)header('Vergleich Bestand / Planfall (Fortsetzung)',sub)}});
+  }}
 
   const n=doc.getNumberOfPages();
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(155,149,153);doc.setLineWidth(.2);doc.line(M,200,W-M,200);
